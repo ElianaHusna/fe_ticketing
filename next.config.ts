@@ -1,7 +1,17 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  allowedDevOrigins: ["192.168.200.164"],
+
+  async rewrites() {
+    return [
+      {
+        source: "/backend/:path*",
+        destination:
+          "http://192.168.200.193:3000/api/v1/:path*",
+      },
+    ];
+  },
 };
 
 export default nextConfig;
