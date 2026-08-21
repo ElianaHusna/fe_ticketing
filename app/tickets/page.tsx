@@ -13,6 +13,7 @@ import {
   CircleDot,
   Filter,
   X,
+  Trash2,
 } from "lucide-react";
 
 import AdminSidebar from "@/components/AdminSidebar";
@@ -25,8 +26,6 @@ import { apiFetch } from "@/src/lib/api";
 type TicketStatus =
   | "new"
   | "in_progress"
-  | "waiting_reply"
-  | "escalated"
   | "resolved"
   | "closed";
 
@@ -76,6 +75,12 @@ export default function TicketsAdminPage() {
     useState<TicketStatus | "all">("all");
 
   // =====================================================
+  // DELETE STATE
+  // =====================================================
+
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // =====================================================
   // FETCH TICKETS
   // =====================================================
 
@@ -112,6 +117,55 @@ export default function TicketsAdminPage() {
   useEffect(() => {
     fetchTickets();
   }, []);
+
+  // =====================================================
+  // DELETE TICKET
+  // =====================================================
+
+  const deleteTicket = async (
+    ticket: TicketData
+  ) => {
+    const confirmed = window.confirm(
+      `Apakah kamu yakin ingin menghapus tiket ${ticket.ticketNumber}?\n\nTiket yang dihapus tidak dapat dikembalikan.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setDeletingId(ticket.id);
+      setError("");
+
+      // Endpoint hapus:
+      // DELETE /tickets/:id
+      await apiFetch(`/tickets/${ticket.id}`, {
+        method: "DELETE",
+      });
+
+      // Hapus langsung dari tampilan
+      setTickets((currentTickets) =>
+        currentTickets.filter(
+          (item) => item.id !== ticket.id
+        )
+      );
+    } catch (err) {
+      console.error(
+        "Gagal menghapus tiket:",
+        err
+      );
+
+      if (err instanceof Error) {
+        setError(
+          `Gagal menghapus tiket: ${err.message}`
+        );
+      } else {
+        setError("Gagal menghapus tiket.");
+      }
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   // =====================================================
   // FILTER TICKETS
@@ -184,12 +238,6 @@ export default function TicketsAdminPage() {
       case "in_progress":
         return "Diproses";
 
-      case "waiting_reply":
-        return "Menunggu Balasan";
-
-      case "escalated":
-        return "Eskalasi";
-
       case "resolved":
         return "Selesai";
 
@@ -214,12 +262,6 @@ export default function TicketsAdminPage() {
 
       case "in_progress":
         return "bg-amber-50 text-amber-700";
-
-      case "waiting_reply":
-        return "bg-purple-50 text-purple-700";
-
-      case "escalated":
-        return "bg-red-50 text-red-700";
 
       case "resolved":
         return "bg-emerald-50 text-emerald-700";
@@ -320,6 +362,36 @@ export default function TicketsAdminPage() {
     statusFilter !== "all";
 
   // =====================================================
+  // STATUS FILTER
+  // =====================================================
+
+  const statusFilters: {
+    value: TicketStatus | "all";
+    label: string;
+  }[] = [
+    {
+      value: "all",
+      label: "Semua",
+    },
+    {
+      value: "new",
+      label: "Baru",
+    },
+    {
+      value: "in_progress",
+      label: "Diproses",
+    },
+    {
+      value: "resolved",
+      label: "Selesai",
+    },
+    {
+      value: "closed",
+      label: "Ditutup",
+    },
+  ];
+
+  // =====================================================
   // RETURN
   // =====================================================
 
@@ -372,7 +444,7 @@ export default function TicketsAdminPage() {
             <button
               type="button"
               onClick={fetchTickets}
-              disabled={loading}
+              disabled={loading || deletingId !== null}
               className="
                 flex
                 h-10
@@ -434,10 +506,10 @@ export default function TicketsAdminPage() {
 
               </div>
 
-              <div>
+              <div className="flex-1">
 
                 <p className="font-semibold text-red-700">
-                  Gagal memuat tiket
+                  Terjadi Kesalahan
                 </p>
 
                 <p className="mt-1 text-sm text-red-600">
@@ -445,6 +517,14 @@ export default function TicketsAdminPage() {
                 </p>
 
               </div>
+
+              <button
+                type="button"
+                onClick={() => setError("")}
+                className="text-red-400 transition hover:text-red-600"
+              >
+                <X size={18} />
+              </button>
 
             </div>
           )}
@@ -676,64 +756,35 @@ export default function TicketsAdminPage() {
 
                 </div>
 
-                {[
-                  {
-                    value: "all",
-                    label: "Semua",
-                  },
-                  {
-                    value: "new",
-                    label: "Baru",
-                  },
-                  {
-                    value: "in_progress",
-                    label: "Diproses",
-                  },
-                  {
-                    value: "waiting_reply",
-                    label: "Menunggu",
-                  },
-                  {
-                    value: "escalated",
-                    label: "Eskalasi",
-                  },
-                  {
-                    value: "resolved",
-                    label: "Selesai",
-                  },
-                  {
-                    value: "closed",
-                    label: "Ditutup",
-                  },
-                ].map((filter) => (
-                  <button
-                    key={filter.value}
-                    type="button"
-                    onClick={() =>
-                      setStatusFilter(
-                        filter.value as
-                          | TicketStatus
-                          | "all"
-                      )
-                    }
-                    className={`
-                      rounded-xl
-                      px-3.5
-                      py-2
-                      text-xs
-                      font-semibold
-                      transition
-                      ${
-                        statusFilter ===
-                        filter.value
-                          ? "bg-blue-600 text-white shadow-sm"
-                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                {statusFilters.map(
+                  (filter) => (
+                    <button
+                      key={filter.value}
+                      type="button"
+                      onClick={() =>
+                        setStatusFilter(
+                          filter.value
+                        )
                       }
-                    `}
-                  >
-                    {filter.label}
-                  </button>
-                ))}
+                      className={`
+                        rounded-xl
+                        px-3.5
+                        py-2
+                        text-xs
+                        font-semibold
+                        transition
+                        ${
+                          statusFilter ===
+                          filter.value
+                            ? "bg-blue-600 text-white shadow-sm"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                        }
+                      `}
+                    >
+                      {filter.label}
+                    </button>
+                  )
+                )}
 
               </div>
 
@@ -863,7 +914,7 @@ export default function TicketsAdminPage() {
 
               <div className="overflow-x-auto">
 
-                <table className="w-full min-w-[1050px]">
+                <table className="w-full min-w-[1200px]">
 
                   <thead>
 
@@ -894,7 +945,7 @@ export default function TicketsAdminPage() {
                       </th>
 
                       <th className="px-4 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Detail
+                        Aksi
                       </th>
 
                     </tr>
@@ -904,156 +955,214 @@ export default function TicketsAdminPage() {
                   <tbody>
 
                     {filteredTickets.map(
-                      (ticket) => (
-                        <tr
-                          key={ticket.id}
-                          className="group border-b border-slate-100 transition last:border-b-0 hover:bg-blue-50/30"
-                        >
+                      (ticket) => {
 
-                          {/* TICKET */}
+                        const isDeleting =
+                          deletingId === ticket.id;
 
-                          <td className="px-6 py-4">
+                        return (
+                          <tr
+                            key={ticket.id}
+                            className="group border-b border-slate-100 transition last:border-b-0 hover:bg-blue-50/30"
+                          >
 
-                            <Link
-                              href={`/tickets/${ticket.id}`}
-                              className="block"
-                            >
+                            {/* TICKET */}
 
-                              <p className="text-xs font-bold text-blue-600">
-                                {ticket.ticketNumber}
+                            <td className="px-6 py-4">
+
+                              <Link
+                                href={`/tickets/${ticket.id}`}
+                                className="block"
+                              >
+
+                                <p className="text-xs font-bold text-blue-600">
+                                  {ticket.ticketNumber}
+                                </p>
+
+                                <p className="mt-1 max-w-[280px] truncate text-sm font-semibold text-slate-800">
+                                  {ticket.subject}
+                                </p>
+
+                              </Link>
+
+                            </td>
+
+                            {/* REQUESTER */}
+
+                            <td className="px-4 py-4">
+
+                              <p className="max-w-[180px] truncate text-sm font-semibold text-slate-700">
+                                {ticket.requesterName}
                               </p>
 
-                              <p className="mt-1 max-w-[280px] truncate text-sm font-semibold text-slate-800">
-                                {ticket.subject}
+                              <p className="mt-1 max-w-[200px] truncate text-xs text-slate-400">
+                                {ticket.requesterEmail}
                               </p>
 
-                            </Link>
+                            </td>
 
-                          </td>
+                            {/* CATEGORY */}
 
-                          {/* REQUESTER */}
+                            <td className="px-4 py-4">
 
-                          <td className="px-4 py-4">
-
-                            <p className="max-w-[180px] truncate text-sm font-semibold text-slate-700">
-                              {ticket.requesterName}
-                            </p>
-
-                            <p className="mt-1 max-w-[200px] truncate text-xs text-slate-400">
-                              {ticket.requesterEmail}
-                            </p>
-
-                          </td>
-
-                          {/* CATEGORY */}
-
-                          <td className="px-4 py-4">
-
-                            <span className="inline-flex rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
-                              {formatCategory(
-                                ticket.category
-                              )}
-                            </span>
-
-                          </td>
-
-                          {/* PRIORITY */}
-
-                          <td className="px-4 py-4">
-
-                            <span
-                              className={`
-                                inline-flex
-                                rounded-full
-                                px-2.5
-                                py-1
-                                text-[11px]
-                                font-bold
-                                uppercase
-                                ${getPriorityClass(
-                                  ticket.priority
+                              <span className="inline-flex rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
+                                {formatCategory(
+                                  ticket.category
                                 )}
-                              `}
-                            >
-                              {ticket.priority}
-                            </span>
+                              </span>
 
-                          </td>
+                            </td>
 
-                          {/* STATUS */}
+                            {/* PRIORITY */}
 
-                          <td className="px-4 py-4">
+                            <td className="px-4 py-4">
 
-                            <span
-                              className={`
-                                inline-flex
-                                rounded-full
-                                px-2.5
-                                py-1
-                                text-[11px]
-                                font-semibold
-                                ${getStatusClass(
+                              <span
+                                className={`
+                                  inline-flex
+                                  rounded-full
+                                  px-2.5
+                                  py-1
+                                  text-[11px]
+                                  font-bold
+                                  uppercase
+                                  ${getPriorityClass(
+                                    ticket.priority
+                                  )}
+                                `}
+                              >
+                                {ticket.priority}
+                              </span>
+
+                            </td>
+
+                            {/* STATUS */}
+
+                            <td className="px-4 py-4">
+
+                              <span
+                                className={`
+                                  inline-flex
+                                  rounded-full
+                                  px-2.5
+                                  py-1
+                                  text-[11px]
+                                  font-semibold
+                                  ${getStatusClass(
+                                    ticket.status
+                                  )}
+                                `}
+                              >
+                                {getStatusLabel(
                                   ticket.status
                                 )}
-                              `}
-                            >
-                              {getStatusLabel(
-                                ticket.status
-                              )}
-                            </span>
+                              </span>
 
-                          </td>
+                            </td>
 
-                          {/* DATE */}
+                            {/* DATE */}
 
-                          <td className="px-4 py-4">
+                            <td className="px-4 py-4">
 
-                            <p className="text-xs font-medium text-slate-600">
-                              {formatDate(
-                                ticket.createdAt
-                              )}
-                            </p>
+                              <p className="text-xs font-medium text-slate-600">
+                                {formatDate(
+                                  ticket.createdAt
+                                )}
+                              </p>
 
-                            <p className="mt-1 text-[11px] text-slate-400">
-                              {ticket.source}
-                            </p>
+                              <p className="mt-1 text-[11px] text-slate-400">
+                                {ticket.source}
+                              </p>
 
-                          </td>
+                            </td>
 
-                          {/* DETAIL */}
+                            {/* ACTION */}
 
-                          <td className="px-6 py-4 text-right">
+                            <td className="px-4 py-4">
 
-                            <Link
-                              href={`/tickets/${ticket.id}`}
-                              className="
-                                inline-flex
-                                items-center
-                                gap-1
-                                rounded-xl
-                                bg-slate-100
-                                px-3
-                                py-2
-                                text-xs
-                                font-semibold
-                                text-slate-600
-                                transition
-                                hover:bg-blue-600
-                                hover:text-white
-                              "
-                            >
-                              Detail
+                              <div className="flex items-center justify-end gap-2">
 
-                              <ChevronRight
-                                size={14}
-                              />
+                                {/* DETAIL */}
 
-                            </Link>
+                                <Link
+                                  href={`/tickets/${ticket.id}`}
+                                  className="
+                                    inline-flex
+                                    items-center
+                                    gap-1
+                                    rounded-xl
+                                    bg-slate-100
+                                    px-3
+                                    py-2
+                                    text-xs
+                                    font-semibold
+                                    text-slate-600
+                                    transition
+                                    hover:bg-blue-600
+                                    hover:text-white
+                                  "
+                                >
+                                  Detail
 
-                          </td>
+                                  <ChevronRight
+                                    size={14}
+                                  />
 
-                        </tr>
-                      )
+                                </Link>
+
+                                {/* DELETE */}
+
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    deleteTicket(
+                                      ticket
+                                    )
+                                  }
+                                  disabled={
+                                    isDeleting ||
+                                    deletingId !== null
+                                  }
+                                  title="Hapus tiket"
+                                  className="
+                                    inline-flex
+                                    items-center
+                                    justify-center
+                                    rounded-xl
+                                    bg-red-50
+                                    px-3
+                                    py-2
+                                    text-xs
+                                    font-semibold
+                                    text-red-600
+                                    transition
+                                    hover:bg-red-600
+                                    hover:text-white
+                                    disabled:cursor-not-allowed
+                                    disabled:opacity-50
+                                  "
+                                >
+
+                                  {isDeleting ? (
+                                    <RefreshCw
+                                      size={15}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <Trash2
+                                      size={15}
+                                    />
+                                  )}
+
+                                </button>
+
+                              </div>
+
+                            </td>
+
+                          </tr>
+                        );
+                      }
                     )}
 
                   </tbody>

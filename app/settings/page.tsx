@@ -257,40 +257,7 @@ export default function AdminSettingsPage() {
               </div>
             </section>
 
-            {/* KONFIGURASI TIKET */}
-            <section className="rounded-2xl border border-slate-200 bg-white">
-              <div className="border-b border-slate-100 px-6 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
-                    <Upload size={18} />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-bold text-slate-900">Konfigurasi Tiket</h2>
-                    <p className="text-xs text-slate-500">Pengaturan batas ukuran lampiran foto</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <div className="max-w-xs">
-                  <label className="block text-sm font-semibold text-slate-700">
-                    Batas Maksimal Ukuran Foto (MB)
-                  </label>
-                  <input
-                    type="number"
-                    value={maxUpload}
-                    onChange={(e) => setMaxUpload(e.target.value)}
-                    className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10"
-                    min="1"
-                    max="20"
-                  />
-                  <p className="mt-2 text-xs text-slate-400">
-                    Batas ukuran foto ini akan diterapkan pada form pembuatan tiket user.
-                  </p>
-                </div>
-              </div>
-            </section>
-
+        
             {/* KEAMANAN */}
             <section className="rounded-2xl border border-slate-200 bg-white">
               <div className="border-b border-slate-100 px-6 py-4">

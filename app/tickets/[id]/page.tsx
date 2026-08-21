@@ -107,7 +107,6 @@ const STATUS_OPTIONS: {
 }[] = [
   { status: "new", label: "Tiket Dibuat" },
   { status: "in_progress", label: "Sedang Diproses" },
-  { status: "waiting_reply", label: "Menunggu Balasan" },
   { status: "escalated", label: "Eskalasi" },
   { status: "resolved", label: "Selesai" },
   { status: "closed", label: "Ditutup" },
