@@ -21,8 +21,6 @@ export default function SubmitTicketPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const [form, setForm] = useState({
-    requesterName: "",
-    requesterEmail: "",
     subject: "",
     category: "",
     priority: "",
@@ -84,13 +82,14 @@ export default function SubmitTicketPage() {
     }
 
     // Maksimal 10 MB
-const maxSize = 10 * 1024 * 1024;
+    const maxSize = 10 * 1024 * 1024;
 
-if (file.size > maxSize) {
-  setError("Ukuran foto maksimal 10 MB.");
-  e.target.value = "";
-  return;
-}
+    if (file.size > maxSize) {
+      setError("Ukuran foto maksimal 10 MB.");
+      e.target.value = "";
+      return;
+    }
+
     setSelectedFile(file);
 
     // Hapus preview sebelumnya
@@ -137,8 +136,6 @@ if (file.size > maxSize) {
     // ==============================
 
     if (
-      !form.requesterName.trim() ||
-      !form.requesterEmail.trim() ||
       !form.subject.trim() ||
       !form.category ||
       !form.priority ||
@@ -156,16 +153,6 @@ if (file.size > maxSize) {
       // ==============================
 
       const formData = new FormData();
-
-      formData.append(
-        "requesterName",
-        form.requesterName.trim()
-      );
-
-      formData.append(
-        "requesterEmail",
-        form.requesterEmail.trim()
-      );
 
       formData.append(
         "subject",
@@ -234,8 +221,6 @@ if (file.size > maxSize) {
       );
 
       setForm({
-        requesterName: "",
-        requesterEmail: "",
         subject: "",
         category: "",
         priority: "",
@@ -380,59 +365,6 @@ if (file.size > maxSize) {
               className="p-6 lg:p-8"
             >
               <div className="grid gap-6 lg:grid-cols-2">
-                {/* ======================================
-                    NAMA
-                ====================================== */}
-
-                <div>
-                  <label
-                    htmlFor="requesterName"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Nama Lengkap
-                    <span className="ml-1 text-red-500">
-                      *
-                    </span>
-                  </label>
-
-                  <input
-                    id="requesterName"
-                    name="requesterName"
-                    type="text"
-                    value={form.requesterName}
-                    onChange={handleChange}
-                    placeholder="Masukkan nama lengkap"
-                    disabled={loading}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:bg-slate-100"
-                  />
-                </div>
-
-                {/* ======================================
-                    EMAIL
-                ====================================== */}
-
-                <div>
-                  <label
-                    htmlFor="requesterEmail"
-                    className="mb-2 block text-sm font-semibold text-slate-700"
-                  >
-                    Email
-                    <span className="ml-1 text-red-500">
-                      *
-                    </span>
-                  </label>
-
-                  <input
-                    id="requesterEmail"
-                    name="requesterEmail"
-                    type="email"
-                    value={form.requesterEmail}
-                    onChange={handleChange}
-                    placeholder="nama@perusahaan.com"
-                    disabled={loading}
-                    className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 disabled:bg-slate-100"
-                  />
-                </div>
 
                 {/* ======================================
                     JUDUL
@@ -620,8 +552,6 @@ if (file.size > maxSize) {
                       <p className="mt-1 text-xs text-slate-400">
                         JPG, JPEG, PNG atau WEBP
                       </p>
-
-      
                     </button>
                   ) : (
                     <div className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50">
