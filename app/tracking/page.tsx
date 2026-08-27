@@ -263,10 +263,14 @@ export default function TrackingPage() {
           dot: "bg-red-500",
         };
       case "resolved":
+         return {
+          badge: "bg-green-50 border-green-200 text-green-700",
+          dot: "bg-green-500",
+        };
       case "closed":
         return {
-          badge: "bg-emerald-50 border-emerald-200 text-emerald-700",
-          dot: "bg-emerald-500",
+          badge: "bg-gray-50 border-gray-200 text-gray-700",
+          dot: "bg-gray-500",
         };
       default:
         return {

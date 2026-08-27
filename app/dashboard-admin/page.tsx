@@ -86,12 +86,12 @@ interface TicketsResponse {
 // =====================================================
 
 const statusColors = [
-  "#2563eb", // Baru
-  "#f59e0b", // Diproses
-  "#8b5cf6", // Menunggu Balasan
-  "#ef4444", // Eskalasi
-  "#22c55e", // Selesai
-  "#94a3b8", // Ditutup
+  "#2563eb",
+  "#f59e0b",
+  "#8b5cf6",
+  "#ef4444",
+  "#22c55e",
+  "#94a3b8",
 ];
 
 // =====================================================
@@ -123,11 +123,7 @@ export default function DashboardAdminPage() {
           : []
       );
     } catch (err) {
-      console.error(
-        "Gagal mengambil data tiket:",
-        err
-      );
-
+      console.error("Gagal mengambil data tiket:", err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -183,7 +179,6 @@ export default function DashboardAdminPage() {
 
   const currentMonthTickets = tickets.filter((ticket) => {
     const date = new Date(ticket.createdAt);
-
     return (
       date.getMonth() === currentMonth &&
       date.getFullYear() === currentYear
@@ -192,7 +187,6 @@ export default function DashboardAdminPage() {
 
   const previousMonthTickets = tickets.filter((ticket) => {
     const date = new Date(ticket.createdAt);
-
     return (
       date.getMonth() === previousMonth &&
       date.getFullYear() === previousMonthYear
@@ -207,7 +201,6 @@ export default function DashboardAdminPage() {
       if (current === 0) return 0;
       return 100;
     }
-
     return Math.round(
       ((current - previous) / previous) * 100
     );
@@ -263,7 +256,6 @@ export default function DashboardAdminPage() {
         date.setMonth(
           date.getMonth() - (5 - index)
         );
-
         return {
           month: date.getMonth(),
           year: date.getFullYear(),
@@ -274,42 +266,31 @@ export default function DashboardAdminPage() {
     return months.map((item) => {
       const value = tickets.filter((ticket) => {
         const date = new Date(ticket.createdAt);
-
         const sameMonth =
           date.getMonth() === item.month &&
           date.getFullYear() === item.year;
-
         if (!sameMonth) return false;
-
         if (!status) return true;
-
         return ticket.status === status;
       }).length;
-
-      return {
-        value,
-      };
+      return { value };
     });
   };
 
   const totalSparkline = makeSparkline();
   const newSparkline = makeSparkline("new");
-  const progressSparkline =
-    makeSparkline("in_progress");
+  const progressSparkline = makeSparkline("in_progress");
 
   const resolvedSparkline = tickets
     ? Array.from({ length: 6 }, (_, index) => {
         const date = new Date();
-
         date.setMonth(
           date.getMonth() - (5 - index)
         );
-
         const value = tickets.filter((ticket) => {
           const ticketDate = new Date(
             ticket.createdAt
           );
-
           return (
             ticketDate.getMonth() ===
               date.getMonth() &&
@@ -319,7 +300,6 @@ export default function DashboardAdminPage() {
               ticket.status === "closed")
           );
         }).length;
-
         return { value };
       })
     : [];
@@ -329,14 +309,10 @@ export default function DashboardAdminPage() {
   // =====================================================
 
   const filteredTickets = useMemo(() => {
-    const keyword = search
-      .trim()
-      .toLowerCase();
-
+    const keyword = search.trim().toLowerCase();
     if (!keyword) {
       return tickets;
     }
-
     return tickets.filter((ticket) => {
       return (
         ticket.ticketNumber
@@ -397,7 +373,7 @@ export default function DashboardAdminPage() {
 
     return [
       {
-        name: "Baru",
+        name: "Belum Dilihat",
         value: statusMap.new,
       },
       {
@@ -446,17 +422,14 @@ export default function DashboardAdminPage() {
     return months.map((month, index) => {
       const count = tickets.filter((ticket) => {
         if (!ticket.createdAt) return false;
-
         const date = new Date(
           ticket.createdAt
         );
-
         return (
           date.getFullYear() === currentYear &&
           date.getMonth() === index
         );
       }).length;
-
       return {
         name: month,
         tiket: count,
@@ -471,7 +444,6 @@ export default function DashboardAdminPage() {
   const totalTicketsThisYear = useMemo(() => {
     return tickets.filter((ticket) => {
       if (!ticket.createdAt) return false;
-
       return (
         new Date(
           ticket.createdAt
@@ -493,7 +465,6 @@ export default function DashboardAdminPage() {
     tickets.forEach((ticket) => {
       const category =
         ticket.category || "other";
-
       categoryMap[category] =
         (categoryMap[category] || 0) + 1;
     });
@@ -535,23 +506,17 @@ export default function DashboardAdminPage() {
   ) => {
     switch (status) {
       case "new":
-        return "Baru";
-
+        return "Belum Dilihat";
       case "in_progress":
         return "Diproses";
-
       case "waiting_reply":
         return "Menunggu";
-
       case "escalated":
         return "Eskalasi";
-
       case "resolved":
         return "Selesai";
-
       case "closed":
         return "Ditutup";
-
       default:
         return status;
     }
@@ -566,25 +531,19 @@ export default function DashboardAdminPage() {
   ) => {
     switch (status) {
       case "new":
-        return "bg-blue-50 text-blue-700";
-
+        return "bg-blue-50 border-blue-200 text-blue-700";
       case "in_progress":
-        return "bg-amber-50 text-amber-700";
-
+        return "bg-amber-50 border-amber-200 text-amber-700";
       case "waiting_reply":
-        return "bg-purple-50 text-purple-700";
-
+        return "bg-purple-50 border-purple-200 text-purple-700";
       case "escalated":
-        return "bg-red-50 text-red-700";
-
+        return "bg-red-50 border-red-200 text-red-700";
       case "resolved":
-        return "bg-emerald-50 text-emerald-700";
-
+        return "bg-emerald-50 border-emerald-200 text-emerald-700";
       case "closed":
-        return "bg-slate-100 text-slate-700";
-
+        return "bg-slate-100 border-slate-200 text-slate-700";
       default:
-        return "bg-slate-100 text-slate-600";
+        return "bg-slate-100 border-slate-200 text-slate-600";
     }
   };
 
@@ -598,16 +557,12 @@ export default function DashboardAdminPage() {
     switch (priority) {
       case "urgent":
         return "bg-red-50 text-red-600 border-red-100";
-
       case "high":
         return "bg-orange-50 text-orange-600 border-orange-100";
-
       case "medium":
         return "bg-amber-50 text-amber-600 border-amber-100";
-
       case "low":
         return "bg-slate-100 text-slate-600 border-slate-200";
-
       default:
         return "bg-slate-100 text-slate-600 border-slate-200";
     }
@@ -622,17 +577,13 @@ export default function DashboardAdminPage() {
   ) => {
     switch (priority) {
       case "urgent":
-        return "Urgent";
-
+        return "Sangat Tinggi";
       case "high":
-        return "High";
-
+        return "Tinggi";
       case "medium":
-        return "Medium";
-
+        return "Sedang";
       case "low":
-        return "Low";
-
+        return "Rendah";
       default:
         return priority;
     }
@@ -648,19 +599,14 @@ export default function DashboardAdminPage() {
     switch (category) {
       case "technical":
         return "Teknis";
-
       case "billing":
         return "Billing";
-
       case "account":
         return "Akun";
-
       case "feature_request":
         return "Fitur";
-
       case "other":
         return "Lainnya";
-
       default:
         return category;
     }
@@ -674,7 +620,6 @@ export default function DashboardAdminPage() {
     date: string
   ) => {
     if (!date) return "-";
-
     return new Date(
       date
     ).toLocaleDateString(
@@ -697,7 +642,6 @@ export default function DashboardAdminPage() {
     value: number;
   }) => {
     const positive = value >= 0;
-
     return (
       <p
         className={`mt-2 flex items-center gap-1 text-xs ${
@@ -714,7 +658,6 @@ export default function DashboardAdminPage() {
               : "rotate-180"
           }
         />
-
         {positive ? "↑" : "↓"}{" "}
         {Math.abs(value)}%{" "}
         <span className="text-slate-400">
@@ -758,36 +701,35 @@ export default function DashboardAdminPage() {
           overflow-hidden
           rounded-2xl
           border
-          border-slate-200
-          bg-white
-          shadow-[0_2px_12px_rgba(15,23,42,0.04)]
-          transition
+          border-slate-200/60
+          bg-white/80
+          backdrop-blur-sm
+          shadow-sm
+          transition-all
+          duration-300
           hover:-translate-y-0.5
           hover:shadow-lg
+          hover:border-blue-200/60
         "
       >
         <div className="p-5">
           <div className="flex items-start justify-between">
             <div className="min-w-0">
-              <p className="text-xs font-medium text-slate-500">
+              <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 {title}
               </p>
-
               <p
                 className={`mt-2 text-3xl font-bold tracking-tight ${valueColor}`}
               >
                 {loading ? "..." : value}
               </p>
-
               <TrendText value={trend} />
-
               <p className="mt-1 text-[11px] text-slate-400">
                 {description}
               </p>
             </div>
-
             <div
-              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconBg}`}
+              className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${iconBg} group-hover:scale-110 transition-transform duration-300`}
             >
               <Icon
                 size={21}
@@ -796,7 +738,6 @@ export default function DashboardAdminPage() {
             </div>
           </div>
         </div>
-
         <div className="h-12 px-3 pb-2">
           {!loading && (
             <ResponsiveContainer
@@ -825,147 +766,104 @@ export default function DashboardAdminPage() {
   // =====================================================
 
   return (
-    <div className="min-h-screen bg-[#f5f7fb]">
-      {/* SIDEBAR */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
 
       <AdminSidebar />
 
-      {/* MAIN */}
-
       <main className="ml-64 min-h-screen">
+
         {/* =================================================
-            TOP BAR
+            HEADER - CLEAN & MODERN
         ================================================= */}
+        <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200/60 sticky top-0 z-30">
+          <div className="px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-600/25">
+                  <PieChartIcon size={18} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+                    Dashboard Overview
+                  </h1>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Pantau dan kelola semua aktivitas tiket
+                  </p>
+                </div>
+              </div>
 
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur">
-          <div className="flex min-h-[70px] items-center justify-between px-8">
-            {/* SEARCH */}
+              <div className="flex items-center gap-3">
+                {/* SEARCH */}
+                <div className="relative w-64">
+                  <Search
+                    size={15}
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  />
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) =>
+                      setSearch(e.target.value)
+                    }
+                    placeholder="Cari tiket..."
+                    className="
+                      w-full
+                      h-9
+                      rounded-xl
+                      border
+                      border-slate-200/60
+                      bg-slate-50/80
+                      pl-9
+                      pr-4
+                      text-xs
+                      text-slate-700
+                      outline-none
+                      transition-all
+                      placeholder:text-slate-400
+                      focus:border-blue-400
+                      focus:bg-white
+                      focus:ring-2
+                      focus:ring-blue-400/20
+                    "
+                  />
+                </div>
 
-            <div className="relative w-full max-w-[330px]">
-              <Search
-                size={16}
-                className="
-                  absolute
-                  left-3
-                  top-1/2
-                  -translate-y-1/2
-                  text-slate-400
-                "
-              />
-
-              <input
-                type="text"
-                value={search}
-                onChange={(e) =>
-                  setSearch(e.target.value)
-                }
-                placeholder="Cari tiket, pengguna, kategori..."
-                className="
-                  h-10
-                  w-full
-                  rounded-xl
-                  border
-                  border-slate-200
-                  bg-slate-50
-                  pl-9
-                  pr-4
-                  text-xs
-                  text-slate-700
-                  outline-none
-                  transition
-                  placeholder:text-slate-400
-                  focus:border-blue-400
-                  focus:bg-white
-                  focus:ring-4
-                  focus:ring-blue-50
-                "
-              />
+                <button
+                  type="button"
+                  onClick={fetchTickets}
+                  disabled={loading}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition-all duration-200 disabled:opacity-50"
+                >
+                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+                </button>
+                <div className="w-px h-6 bg-slate-200" />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/80 border border-slate-200/60">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-blue-600/20">
+                    AD
+                  </div>
+                  <span className="text-sm font-semibold text-slate-700">Admin</span>
+                </div>
+              </div>
             </div>
-
-            {/* REFRESH */}
-
-            <button
-              type="button"
-              onClick={fetchTickets}
-              disabled={loading}
-              className="
-                flex
-                h-10
-                items-center
-                gap-2
-                rounded-xl
-                border
-                border-slate-200
-                bg-white
-                px-4
-                text-xs
-                font-semibold
-                text-blue-600
-                shadow-sm
-                transition
-                hover:bg-blue-50
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
-            >
-              <RefreshCw
-                size={15}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
-              />
-
-              Perbarui Data
-            </button>
           </div>
         </header>
 
         {/* =================================================
             CONTENT
         ================================================= */}
+        <div className="p-6">
 
-        <div className="p-8">
-          {/* TITLE */}
-
-          <div className="mb-7">
-            <div className="flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-600" />
-
-              <p className="text-xs font-bold uppercase tracking-[0.15em] text-blue-600">
-                Admin Dashboard
-              </p>
-            </div>
-
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
-              Dashboard Overview
-            </h1>
-
-            <p className="mt-1 text-sm text-slate-500">
-              Pantau dan kelola semua aktivitas
-              tiket helpdesk dalam satu tempat.
-            </p>
-          </div>
-
-          {/* =================================================
-              ERROR
-          ================================================= */}
-
+          {/* ERROR */}
           {error && (
-            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100">
-                <AlertTriangle
-                  size={18}
-                  className="text-red-600"
-                />
-              </div>
-
+            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200/80 bg-red-50/80 backdrop-blur-sm px-5 py-4 shadow-sm">
+              <AlertTriangle
+                size={18}
+                className="text-red-500"
+              />
               <div>
                 <p className="font-semibold text-red-700">
                   Gagal memuat tiket
                 </p>
-
                 <p className="mt-1 text-sm text-red-600">
                   {error}
                 </p>
@@ -976,8 +874,7 @@ export default function DashboardAdminPage() {
           {/* =================================================
               STAT CARDS
           ================================================= */}
-
-          <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-4 mb-6">
             <StatCard
               title="Semua Tiket"
               value={total}
@@ -990,9 +887,8 @@ export default function DashboardAdminPage() {
               chartData={totalSparkline}
               lineColor="#2563eb"
             />
-
             <StatCard
-              title="Tiket Baru"
+              title="Belum Dilihat"
               value={newTickets}
               description="Menunggu ditangani"
               icon={CircleDot}
@@ -1003,11 +899,10 @@ export default function DashboardAdminPage() {
               chartData={newSparkline}
               lineColor="#2563eb"
             />
-
             <StatCard
               title="Sedang Diproses"
               value={inProgress}
-              description="Sedang ditangani agent"
+              description="Sedang ditangani"
               icon={Clock3}
               iconBg="bg-amber-50"
               iconColor="text-amber-600"
@@ -1016,9 +911,8 @@ export default function DashboardAdminPage() {
               chartData={progressSparkline}
               lineColor="#f59e0b"
             />
-
             <StatCard
-              title="Tiket Selesai"
+              title="Selesai"
               value={resolved}
               description="Berhasil diselesaikan"
               icon={CheckCircle2}
@@ -1034,33 +928,21 @@ export default function DashboardAdminPage() {
           {/* =================================================
               ROW GRAFIK
           ================================================= */}
+          <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
 
-          <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-2">
             {/* =================================================
                 DISTRIBUSI STATUS - PIE
             ================================================= */}
-
-            <div
-              className="
-                rounded-2xl
-                border
-                border-slate-200
-                bg-white
-                p-6
-                shadow-[0_2px_12px_rgba(15,23,42,0.04)]
-              "
-            >
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
                     Distribusi Status Tiket
                   </h2>
-
                   <p className="mt-1 text-xs text-slate-500">
                     Kondisi seluruh tiket saat ini
                   </p>
                 </div>
-
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
                   <PieChartIcon
                     size={19}
@@ -1070,8 +952,6 @@ export default function DashboardAdminPage() {
               </div>
 
               <div className="mt-4 grid grid-cols-1 items-center gap-3 md:grid-cols-[1fr_1fr]">
-                {/* DONUT */}
-
                 <div className="relative h-[250px]">
                   {loading ? (
                     <div className="flex h-full items-center justify-center">
@@ -1086,7 +966,6 @@ export default function DashboardAdminPage() {
                         size={38}
                         className="text-slate-300"
                       />
-
                       <p className="mt-3 text-sm text-slate-500">
                         Belum ada data
                       </p>
@@ -1124,11 +1003,8 @@ export default function DashboardAdminPage() {
                               )
                             )}
                           </Pie>
-
                           <Tooltip
-                            formatter={(
-                              value
-                            ) => [
+                            formatter={(value) => [
                               `${value ?? 0} tiket`,
                               "Jumlah",
                             ]}
@@ -1139,19 +1015,16 @@ export default function DashboardAdminPage() {
                                 "1px solid #e2e8f0",
                               boxShadow:
                                 "0 10px 25px rgba(15,23,42,0.08)",
+                              background: "white",
                             }}
                           />
                         </PieChart>
                       </ResponsiveContainer>
-
-                      {/* CENTER */}
-
                       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                         <div className="text-center">
                           <p className="text-2xl font-bold text-slate-900">
                             {total}
                           </p>
-
                           <p className="text-[11px] text-slate-400">
                             Total
                           </p>
@@ -1162,7 +1035,6 @@ export default function DashboardAdminPage() {
                 </div>
 
                 {/* LEGEND */}
-
                 <div className="space-y-3 pr-2">
                   {statusChartData.map(
                     (item, index) => {
@@ -1174,7 +1046,6 @@ export default function DashboardAdminPage() {
                               100
                             ).toFixed(1)
                           : "0.0";
-
                       return (
                         <div
                           key={item.name}
@@ -1190,17 +1061,14 @@ export default function DashboardAdminPage() {
                                   ],
                               }}
                             />
-
                             <span className="truncate text-xs text-slate-600">
                               {item.name}
                             </span>
                           </div>
-
                           <div className="shrink-0 text-right">
                             <span className="text-xs font-semibold text-slate-700">
                               {item.value}
                             </span>
-
                             <span className="ml-1 text-[10px] text-slate-400">
                               ({percentage}%)
                             </span>
@@ -1216,30 +1084,17 @@ export default function DashboardAdminPage() {
             {/* =================================================
                 TIKET MASUK PER BULAN
             ================================================= */}
-
-            <div
-              className="
-                rounded-2xl
-                border
-                border-slate-200
-                bg-white
-                p-6
-                shadow-[0_2px_12px_rgba(15,23,42,0.04)]
-              "
-            >
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm p-6">
               <div className="flex items-start justify-between">
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
                     Tiket Masuk per Bulan
                   </h2>
-
                   <p className="mt-1 text-xs text-slate-500">
-                    Jumlah tiket yang masuk
-                    selama tahun{" "}
+                    Jumlah tiket yang masuk selama tahun{" "}
                     {currentYear}
                   </p>
                 </div>
-
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50">
                   <BarChart3
                     size={19}
@@ -1277,7 +1132,6 @@ export default function DashboardAdminPage() {
                         vertical={false}
                         stroke="#e2e8f0"
                       />
-
                       <XAxis
                         dataKey="name"
                         tickLine={false}
@@ -1287,7 +1141,6 @@ export default function DashboardAdminPage() {
                           fill: "#64748b",
                         }}
                       />
-
                       <YAxis
                         allowDecimals={false}
                         tickLine={false}
@@ -1297,7 +1150,6 @@ export default function DashboardAdminPage() {
                           fill: "#64748b",
                         }}
                       />
-
                       <Tooltip
                         cursor={{
                           fill: "#f8fafc",
@@ -1309,15 +1161,13 @@ export default function DashboardAdminPage() {
                             "1px solid #e2e8f0",
                           boxShadow:
                             "0 10px 25px rgba(15,23,42,0.08)",
+                          background: "white",
                         }}
-                        formatter={(
-                          value
-                        ) => [
+                        formatter={(value) => [
                           `${value ?? 0} tiket`,
                           "Tiket Masuk",
                         ]}
                       />
-
                       <Bar
                         dataKey="tiket"
                         name="Tiket Masuk"
@@ -1335,20 +1185,16 @@ export default function DashboardAdminPage() {
                 )}
               </div>
 
-              {/* TOTAL TAHUN */}
-
-              <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+              <div className="mt-3 flex items-center justify-between rounded-xl bg-slate-50/80 border border-slate-200/60 px-4 py-3">
                 <div className="flex items-center gap-2">
                   <Inbox
                     size={16}
                     className="text-blue-600"
                   />
-
                   <span className="text-xs font-medium text-slate-500">
                     Total tiket tahun ini
                   </span>
                 </div>
-
                 <span className="text-sm font-bold text-slate-900">
                   {loading
                     ? "..."
@@ -1362,18 +1208,7 @@ export default function DashboardAdminPage() {
           {/* =================================================
               KATEGORI TIKET
           ================================================= */}
-
-          <div
-            className="
-              mt-6
-              rounded-2xl
-              border
-              border-slate-200
-              bg-white
-              p-6
-              shadow-[0_2px_12px_rgba(15,23,42,0.04)]
-            "
-          >
+          <div className="mt-5 bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm p-6">
             <div className="flex items-start justify-between">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50">
@@ -1382,27 +1217,21 @@ export default function DashboardAdminPage() {
                     className="text-indigo-600"
                   />
                 </div>
-
                 <div>
                   <h2 className="text-base font-bold text-slate-900">
                     Kategori Tiket
                   </h2>
-
                   <p className="mt-1 text-xs text-slate-500">
-                    Jumlah laporan berdasarkan
-                    kategori
+                    Jumlah laporan berdasarkan kategori
                   </p>
                 </div>
               </div>
-
               <span className="text-xs font-medium text-slate-400">
                 Total {total} tiket
               </span>
             </div>
 
             <div className="mt-5 grid grid-cols-1 items-center gap-6 xl:grid-cols-[1fr_180px]">
-              {/* BAR */}
-
               <div className="h-[260px]">
                 {loading ? (
                   <div className="flex h-full items-center justify-center">
@@ -1418,7 +1247,6 @@ export default function DashboardAdminPage() {
                       size={38}
                       className="text-slate-300"
                     />
-
                     <p className="mt-3 text-sm font-medium text-slate-500">
                       Belum ada data kategori
                     </p>
@@ -1445,7 +1273,6 @@ export default function DashboardAdminPage() {
                         horizontal={false}
                         stroke="#e2e8f0"
                       />
-
                       <XAxis
                         type="number"
                         allowDecimals={false}
@@ -1456,7 +1283,6 @@ export default function DashboardAdminPage() {
                           fill: "#64748b",
                         }}
                       />
-
                       <YAxis
                         type="category"
                         dataKey="name"
@@ -1468,7 +1294,6 @@ export default function DashboardAdminPage() {
                           fill: "#475569",
                         }}
                       />
-
                       <Tooltip
                         cursor={{
                           fill: "#f8fafc",
@@ -1480,15 +1305,13 @@ export default function DashboardAdminPage() {
                             "1px solid #e2e8f0",
                           boxShadow:
                             "0 10px 25px rgba(15,23,42,0.08)",
+                          background: "white",
                         }}
-                        formatter={(
-                          value
-                        ) => [
+                        formatter={(value) => [
                           `${value ?? 0} tiket`,
                           "Jumlah",
                         ]}
                       />
-
                       <Bar
                         dataKey="value"
                         name="Jumlah Tiket"
@@ -1507,13 +1330,11 @@ export default function DashboardAdminPage() {
               </div>
 
               {/* TOP CATEGORY */}
-
-              <div className="flex flex-col items-center justify-center border-l border-slate-100 pl-5">
+              <div className="flex flex-col items-center justify-center border-l border-slate-200/60 pl-5">
                 {topCategory ? (
                   <>
                     <div className="relative flex h-20 w-20 items-center justify-center">
                       <div className="absolute inset-0 rounded-full border-[10px] border-blue-100" />
-
                       <div
                         className="
                           absolute
@@ -1527,25 +1348,20 @@ export default function DashboardAdminPage() {
                             "inset(0 0 0 50%)",
                         }}
                       />
-
                       <Layers3
                         size={22}
                         className="relative text-blue-600"
                       />
                     </div>
-
                     <p className="mt-4 text-[11px] text-slate-400">
                       Paling Banyak
                     </p>
-
                     <p className="mt-1 text-lg font-bold text-blue-600">
                       {topCategory.name}
                     </p>
-
                     <p className="mt-1 text-2xl font-bold text-slate-900">
                       {topCategoryPercentage}%
                     </p>
-
                     <p className="mt-1 text-[11px] text-slate-400">
                       dari total tiket
                     </p>
@@ -1562,38 +1378,21 @@ export default function DashboardAdminPage() {
           {/* =================================================
               TIKET TERBARU
           ================================================= */}
-
-          <div
-            className="
-              mt-6
-              overflow-hidden
-              rounded-2xl
-              border
-              border-slate-200
-              bg-white
-              shadow-[0_2px_12px_rgba(15,23,42,0.04)]
-            "
-          >
-            {/* HEADER */}
-
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
+          <div className="mt-5 bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+            <div className="flex items-center justify-between border-b border-slate-200/60 px-6 py-4">
               <div>
                 <div className="flex items-center gap-2">
                   <h2 className="text-base font-bold text-slate-900">
                     Tiket Terbaru
                   </h2>
-
-                  <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-bold text-blue-600">
+                  <span className="rounded-full bg-blue-50 px-2.5 py-0.5 text-[10px] font-bold text-blue-600">
                     {latestTickets.length} terbaru
                   </span>
                 </div>
-
                 <p className="mt-1 text-xs text-slate-500">
-                  Tiket terbaru yang masuk ke
-                  sistem
+                  Tiket terbaru yang masuk ke sistem
                 </p>
               </div>
-
               <Link
                 href="/tickets"
                 className="
@@ -1602,28 +1401,23 @@ export default function DashboardAdminPage() {
                   gap-1
                   rounded-xl
                   border
-                  border-slate-200
+                  border-slate-200/60
                   px-3
                   py-2
                   text-xs
                   font-semibold
                   text-blue-600
-                  transition
+                  transition-all
                   hover:bg-blue-50
                 "
               >
-                Lihat Semua Tiket
-
-                <ChevronRight
-                  size={15}
-                />
+                Lihat Semua
+                <ChevronRight size={15} />
               </Link>
             </div>
 
-            {/* SEARCH RESULT */}
-
             {search && (
-              <div className="border-b border-slate-100 bg-slate-50 px-6 py-3">
+              <div className="border-b border-slate-200/60 bg-slate-50/80 px-6 py-3">
                 <p className="text-xs text-slate-500">
                   Menampilkan{" "}
                   <span className="font-semibold text-slate-700">
@@ -1637,188 +1431,157 @@ export default function DashboardAdminPage() {
               </div>
             )}
 
-            {/* LOADING */}
-
             {loading ? (
               <div className="py-20 text-center">
                 <RefreshCw
                   size={26}
                   className="mx-auto animate-spin text-blue-600"
                 />
-
                 <p className="mt-3 text-sm text-slate-500">
                   Memuat tiket...
                 </p>
               </div>
-            ) : latestTickets.length ===
-              0 ? (
+            ) : latestTickets.length === 0 ? (
               <div className="py-20 text-center">
                 <Ticket
                   size={42}
                   className="mx-auto text-slate-300"
                 />
-
                 <p className="mt-4 font-semibold text-slate-600">
                   Tidak ada tiket
                 </p>
-
                 <p className="mt-1 text-sm text-slate-400">
-                  Belum ada tiket yang
-                  sesuai.
+                  Belum ada tiket yang sesuai.
                 </p>
               </div>
             ) : (
               <div>
-                {latestTickets.map(
-                  (ticket) => (
-                    <Link
-                      key={ticket.id}
-                      href={`/tickets/${ticket.id}`}
+                {latestTickets.map((ticket) => (
+                  <Link
+                    key={ticket.id}
+                    href={`/tickets/${ticket.id}`}
+                    className="
+                      group
+                      flex
+                      items-center
+                      gap-4
+                      border-b
+                      border-slate-100/80
+                      px-6
+                      py-3.5
+                      transition-all
+                      duration-200
+                      last:border-b-0
+                      hover:bg-blue-50/40
+                    "
+                  >
+                    <div
                       className="
-                        group
-                        flex
+                        hidden
+                        h-10
+                        w-10
+                        shrink-0
                         items-center
-                        gap-4
-                        border-b
-                        border-slate-100
-                        px-6
-                        py-4
+                        justify-center
+                        rounded-xl
+                        bg-blue-50
+                        text-blue-600
                         transition
-                        last:border-b-0
-                        hover:bg-blue-50/40
+                        group-hover:bg-blue-100
+                        sm:flex
                       "
                     >
-                      {/* ICON */}
+                      <Ticket size={18} />
+                    </div>
 
-                      <div
-                        className="
-                          hidden
-                          h-10
-                          w-10
-                          shrink-0
-                          items-center
-                          justify-center
-                          rounded-xl
-                          bg-blue-50
-                          text-blue-600
-                          transition
-                          group-hover:bg-blue-100
-                          sm:flex
-                        "
-                      >
-                        <Ticket
-                          size={18}
-                        />
-                      </div>
+                    <div className="w-48 shrink-0">
+                      <p className="truncate text-xs font-bold text-slate-800">
+                        #{ticket.ticketNumber}
+                      </p>
+                      <p className="mt-1 truncate text-[11px] text-slate-400">
+                        {ticket.subject}
+                      </p>
+                    </div>
 
-                      {/* TICKET */}
+                    <div className="hidden w-44 shrink-0 lg:block">
+                      <p className="truncate text-xs font-semibold text-slate-700">
+                        {ticket.requesterName}
+                      </p>
+                      <p className="mt-1 truncate text-[10px] text-slate-400">
+                        {ticket.requesterEmail}
+                      </p>
+                    </div>
 
-                      <div className="w-48 shrink-0">
-                        <p className="truncate text-xs font-bold text-slate-800">
-                          #{ticket.ticketNumber}
-                        </p>
+                    <div className="hidden w-28 shrink-0 xl:block">
+                      <p className="text-xs text-slate-600">
+                        {formatCategory(
+                          ticket.category
+                        )}
+                      </p>
+                    </div>
 
-                        <p className="mt-1 truncate text-[11px] text-slate-400">
-                          {ticket.subject}
-                        </p>
-                      </div>
-
-                      {/* REQUESTER */}
-
-                      <div className="hidden w-44 shrink-0 lg:block">
-                        <p className="truncate text-xs font-semibold text-slate-700">
-                          {
-                            ticket.requesterName
-                          }
-                        </p>
-
-                        <p className="mt-1 truncate text-[10px] text-slate-400">
-                          {
-                            ticket.requesterEmail
-                          }
-                        </p>
-                      </div>
-
-                      {/* CATEGORY */}
-
-                      <div className="hidden w-28 shrink-0 xl:block">
-                        <p className="text-xs text-slate-600">
-                          {formatCategory(
-                            ticket.category
-                          )}
-                        </p>
-                      </div>
-
-                      {/* PRIORITY */}
-
-                      <div className="hidden w-20 shrink-0 md:block">
-                        <span
-                          className={`
-                            inline-flex
-                            rounded-md
-                            border
-                            px-2
-                            py-1
-                            text-[10px]
-                            font-semibold
-                            ${getPriorityClass(
-                              ticket.priority
-                            )}
-                          `}
-                        >
-                          {formatPriority(
+                    <div className="hidden w-24 shrink-0 md:block">
+                      <span
+                        className={`
+                          inline-flex
+                          rounded-md
+                          border
+                          px-2
+                          py-1
+                          text-[10px]
+                          font-semibold
+                          ${getPriorityClass(
                             ticket.priority
                           )}
-                        </span>
-                      </div>
+                        `}
+                      >
+                        {formatPriority(
+                          ticket.priority
+                        )}
+                      </span>
+                    </div>
 
-                      {/* STATUS */}
-
-                      <div className="hidden w-28 shrink-0 sm:block">
-                        <span
-                          className={`
-                            inline-flex
-                            rounded-md
-                            px-2
-                            py-1
-                            text-[10px]
-                            font-semibold
-                            ${getStatusClass(
-                              ticket.status
-                            )}
-                          `}
-                        >
-                          {getStatusLabel(
+                    <div className="hidden w-28 shrink-0 sm:block">
+                      <span
+                        className={`
+                          inline-flex
+                          rounded-md
+                          border
+                          px-2
+                          py-1
+                          text-[10px]
+                          font-semibold
+                          ${getStatusClass(
                             ticket.status
                           )}
-                        </span>
-                      </div>
+                        `}
+                      >
+                        {getStatusLabel(
+                          ticket.status
+                        )}
+                      </span>
+                    </div>
 
-                      {/* DATE */}
+                    <div className="hidden min-w-0 flex-1 text-right xl:block">
+                      <p className="text-[11px] font-medium text-slate-500">
+                        {formatDate(
+                          ticket.createdAt
+                        )}
+                      </p>
+                    </div>
 
-                      <div className="hidden min-w-0 flex-1 text-right xl:block">
-                        <p className="text-[11px] font-medium text-slate-500">
-                          {formatDate(
-                            ticket.createdAt
-                          )}
-                        </p>
-                      </div>
-
-                      {/* ARROW */}
-
-                      <ChevronRight
-                        size={17}
-                        className="
-                          shrink-0
-                          text-slate-300
-                          transition
-                          group-hover:translate-x-0.5
-                          group-hover:text-blue-500
-                        "
-                      />
-                    </Link>
-                  )
-                )}
+                    <ChevronRight
+                      size={17}
+                      className="
+                        shrink-0
+                        text-slate-300
+                        transition
+                        group-hover:translate-x-0.5
+                        group-hover:text-blue-500
+                      "
+                    />
+                  </Link>
+                ))}
               </div>
             )}
           </div>

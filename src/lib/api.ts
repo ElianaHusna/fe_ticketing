@@ -6,77 +6,24 @@ export async function apiFetch(
   endpoint: string,
   options: RequestInit = {}
 ) {
+  // =====================================================
+  // AMBIL TOKEN
+  // =====================================================
+
   const token =
     typeof window !== "undefined"
       ? localStorage.getItem("token")
       : null;
 
+  // =====================================================
+  // CEK FORM DATA
+  // =====================================================
 
   const isFormData =
     options.body instanceof FormData;
 
-
-  const response = await fetch(
-    `${API_URL}${endpoint}`,
-    {
-      ...options,
-
-      headers: {
-        ...(isFormData
-          ? {}
-          : {
-              "Content-Type":
-                "application/json",
-            }),
-
-        Accept:
-          "application/json",
-
-        ...(token
-          ? {
-              Authorization:
-                `Bearer ${token}`,
-            }
-          : {}),
-
-        ...options.headers,
-      },
-    }
-  );
-
-
-  const contentType =
-    response.headers.get(
-      "content-type"
-    );
-
-
-  let data: any = null;
-
-
-  if (
-    contentType?.includes(
-      "application/json"
-    )
-  ) {
-    data =
-      await response.json();
-
-  } else {
-
-    const text =
-      await response.text();
-
-    data = text
-      ? {
-          message: text,
-        }
-      : null;
-  }
-
-
   // =====================================================
-  // DEBUG RESPONSE API
+  // DEBUG REQUEST
   // =====================================================
 
   console.log(
@@ -94,40 +41,221 @@ export async function apiFetch(
   );
 
   console.log(
+    "TOKEN ADA:",
+    !!token
+  );
+
+  console.log(
+    "TOKEN PREVIEW:",
+    token
+      ? `${token.substring(0, 20)}...`
+      : "TIDAK ADA"
+  );
+
+  console.log(
     "IS FORM DATA:",
     isFormData
-  );
-
-  console.log(
-    "API STATUS:",
-    response.status
-  );
-
-  console.log(
-    "API RESPONSE:"
-  );
-
-  console.log(
-    JSON.stringify(
-      data,
-      null,
-      2
-    )
   );
 
   console.log(
     "========================================"
   );
 
+  // =====================================================
+  // REQUEST
+  // =====================================================
+
+  const response = await fetch(
+    `${API_URL}${endpoint}`,
+    {
+      ...options,
+
+      headers: {
+        // -------------------------------------------------
+        // CONTENT TYPE
+        // -------------------------------------------------
+
+        ...(isFormData
+          ? {}
+          : {
+              "Content-Type":
+                "application/json",
+            }),
+
+        // -------------------------------------------------
+        // ACCEPT
+        // -------------------------------------------------
+
+        Accept:
+          "application/json",
+
+        // -------------------------------------------------
+        // AUTHORIZATION
+        // -------------------------------------------------
+
+        ...(token
+          ? {
+              Authorization:
+                `Bearer ${token}`,
+            }
+          : {}),
+
+        // -------------------------------------------------
+        // HEADER TAMBAHAN
+        // -------------------------------------------------
+
+        ...options.headers,
+      },
+    }
+  );
+
+  // =====================================================
+  // AMBIL CONTENT TYPE RESPONSE
+  // =====================================================
+
+  const contentType =
+    response.headers.get(
+      "content-type"
+    ) || "";
+
+  // =====================================================
+  // DATA RESPONSE
+  // =====================================================
+
+  let data: any = null;
+
+  // =====================================================
+  // JSON RESPONSE
+  // =====================================================
+
+  if (
+    contentType.includes(
+      "application/json"
+    )
+  ) {
+    try {
+      data =
+        await response.json();
+    } catch (error) {
+      console.error(
+        "Gagal membaca JSON response:",
+        error
+      );
+
+      data = {
+        message:
+          "Server mengembalikan JSON yang tidak valid.",
+      };
+    }
+  }
+
+  // =====================================================
+  // TEXT / HTML RESPONSE
+  // =====================================================
+
+  else {
+    const text =
+      await response.text();
+
+    data = text
+      ? {
+          message: text,
+        }
+      : null;
+  }
+
+  // =====================================================
+  // DEBUG RESPONSE
+  // =====================================================
+
+  console.log(
+    "========================================"
+  );
+
+  console.log(
+    "API RESPONSE"
+  );
+
+  console.log(
+    "URL:",
+    `${API_URL}${endpoint}`
+  );
+
+  console.log(
+    "STATUS:",
+    response.status
+  );
+
+  console.log(
+    "STATUS TEXT:",
+    response.statusText
+  );
+
+  console.log(
+    "CONTENT TYPE:",
+    contentType
+  );
+
+  console.log(
+    "RESPONSE DATA:",
+    data
+  );
+
+  console.log(
+    "========================================"
+  );
+
+  // =====================================================
+  // UNAUTHORIZED
+  // =====================================================
+
+  if (
+    response.status === 401
+  ) {
+    console.error(
+      "========================================"
+    );
+
+    console.error(
+      "UNAUTHORIZED / TOKEN BERMASALAH"
+    );
+
+    console.error(
+      "Token ada:",
+      !!token
+    );
+
+    console.error(
+      "Endpoint:",
+      endpoint
+    );
+
+    console.error(
+      "========================================"
+    );
+
+    throw new Error(
+      data?.message ||
+        data?.error ||
+        "Unauthorized"
+    );
+  }
+
+  // =====================================================
+  // ERROR RESPONSE LAINNYA
+  // =====================================================
 
   if (!response.ok) {
     throw new Error(
       data?.message ||
-      data?.error ||
-      "Terjadi kesalahan pada server"
+        data?.error ||
+        "Terjadi kesalahan pada server"
     );
   }
 
+  // =====================================================
+  // RETURN DATA
+  // =====================================================
 
   return data;
 }

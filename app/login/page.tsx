@@ -6,7 +6,6 @@ import {
   Lock,
   Ticket,
   Eye,
-  EyeOff,
   User,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -32,10 +31,54 @@ export default function LoginPage() {
   // API
   // ==================================================
 
-  // Request akan masuk ke Next.js proxy terlebih dahulu.
-  // Next.js kemudian meneruskannya ke backend.
   const API_URL =
-    process.env.NEXT_PUBLIC_API_URL || "/backend";
+    process.env.NEXT_PUBLIC_API_URL ||
+    "http://192.168.200.193:3000/api/v1";
+
+  // ==================================================
+  // PARSE RESPONSE API
+  // ==================================================
+
+  const parseResponse = async (response: Response) => {
+    const contentType =
+      response.headers.get("content-type") || "";
+
+    const rawResponse = await response.text();
+
+    console.log("Response content-type:", contentType);
+    console.log("Response raw:", rawResponse);
+
+    // ==================================================
+    // JSON RESPONSE
+    // ==================================================
+
+    if (contentType.includes("application/json")) {
+      try {
+        return rawResponse
+          ? JSON.parse(rawResponse)
+          : {};
+      } catch (error) {
+        console.error(
+          "JSON response tidak valid:",
+          error
+        );
+
+        throw new Error(
+          "Server mengembalikan JSON yang tidak valid."
+        );
+      }
+    }
+
+    // ==================================================
+    // TEXT / HTML RESPONSE
+    // ==================================================
+
+    return {
+      message:
+        rawResponse ||
+        "Server tidak mengembalikan response yang valid.",
+    };
+  };
 
   // ==================================================
   // AMBIL USER DARI TOKEN JWT
@@ -46,7 +89,9 @@ export default function LoginPage() {
       const parts = token.split(".");
 
       if (parts.length !== 3) {
-        throw new Error("Format token JWT tidak valid.");
+        throw new Error(
+          "Format token JWT tidak valid."
+        );
       }
 
       const base64Url = parts[1];
@@ -56,16 +101,44 @@ export default function LoginPage() {
         .replace(/_/g, "/");
 
       const paddedBase64 =
-        base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+        base64 +
+        "=".repeat(
+          (4 - (base64.length % 4)) % 4
+        );
 
-      const payload = JSON.parse(atob(paddedBase64));
+      const payload = JSON.parse(
+        atob(paddedBase64)
+      );
 
       console.log("JWT payload:", payload);
 
+      // ==================================================
+      // AMBIL NAMA
+      // ==================================================
+
+      const userName =
+        payload.name ||
+        payload.nama ||
+        payload.full_name ||
+        null;
+
+      console.log(
+        "Nama dari JWT:",
+        userName
+      );
+
       return {
-        id: payload.sub,
-        email: payload.email,
-        role: payload.role,
+        id:
+          payload.sub ||
+          payload.id,
+
+        name: userName,
+
+        email:
+          payload.email,
+
+        role:
+          payload.role,
       };
     } catch (error) {
       console.error(
@@ -94,27 +167,45 @@ export default function LoginPage() {
     // ==================================================
 
     if (isRegister) {
+      // ==================================================
+      // VALIDASI REGISTER
+      // ==================================================
+
       if (
         !name.trim() ||
         !email.trim() ||
         !password ||
         !confirmPassword
       ) {
-        setError("Semua field wajib diisi.");
+        setError(
+          "Semua field wajib diisi."
+        );
+
         return;
       }
 
-      if (password !== confirmPassword) {
+      if (
+        password !==
+        confirmPassword
+      ) {
         setError(
           "Password dan konfirmasi password tidak sama."
         );
+
         return;
       }
 
       if (password.length < 6) {
-        setError("Password minimal 6 karakter.");
+        setError(
+          "Password minimal 6 karakter."
+        );
+
         return;
       }
+
+      // ==================================================
+      // REQUEST REGISTER
+      // ==================================================
 
       try {
         setLoading(true);
@@ -122,26 +213,88 @@ export default function LoginPage() {
         const registerUrl =
           `${API_URL}/auth/register`;
 
-        console.log("=== REGISTER ===");
-        console.log("Register URL:", registerUrl);
+        console.log(
+          "========================================"
+        );
 
-        const response = await fetch(registerUrl, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: JSON.stringify({
-            name: name.trim(),
-            email: email.trim(),
-            password,
-            password_confirmation: confirmPassword,
-          }),
-        });
+        console.log("REGISTER");
 
-        const data = await response.json();
+        console.log(
+          "API URL:",
+          API_URL
+        );
 
-        console.log("Register response:", data);
+        console.log(
+          "Register URL:",
+          registerUrl
+        );
+
+        console.log(
+          "Nama:",
+          name.trim()
+        );
+
+        console.log(
+          "Email:",
+          email.trim()
+        );
+
+        console.log(
+          "========================================"
+        );
+
+        const response =
+          await fetch(
+            registerUrl,
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                Accept:
+                  "application/json",
+              },
+
+              body:
+                JSON.stringify({
+                  name:
+                    name.trim(),
+
+                  email:
+                    email.trim(),
+
+                  password,
+
+                  password_confirmation:
+                    confirmPassword,
+                }),
+            }
+          );
+
+        console.log(
+          "Register HTTP status:",
+          response.status
+        );
+
+        // ==================================================
+        // PARSE RESPONSE
+        // ==================================================
+
+        const data =
+          await parseResponse(
+            response
+          );
+
+        console.log(
+          "REGISTER RESPONSE:",
+          data
+        );
+
+        // ==================================================
+        // ERROR REGISTER
+        // ==================================================
 
         if (!response.ok) {
           throw new Error(
@@ -150,6 +303,32 @@ export default function LoginPage() {
               "Registrasi gagal."
           );
         }
+
+        // ==================================================
+        // SIMPAN NAMA
+        // ==================================================
+
+        const savedName =
+          name.trim();
+
+        localStorage.setItem(
+          "registerName",
+          savedName
+        );
+
+        localStorage.setItem(
+          "userName",
+          savedName
+        );
+
+        console.log(
+          "Nama register disimpan:",
+          savedName
+        );
+
+        // ==================================================
+        // SUCCESS
+        // ==================================================
 
         setSuccess(
           "Registrasi berhasil. Silakan login."
@@ -160,12 +339,19 @@ export default function LoginPage() {
         setPassword("");
         setConfirmPassword("");
 
+        // ==================================================
+        // KEMBALI KE LOGIN
+        // ==================================================
+
         setTimeout(() => {
           setIsRegister(false);
           setSuccess("");
         }, 1000);
       } catch (err) {
-        console.error("Register error:", err);
+        console.error(
+          "Register error:",
+          err
+        );
 
         setError(
           err instanceof Error
@@ -183,8 +369,14 @@ export default function LoginPage() {
     // VALIDASI LOGIN
     // ==================================================
 
-    if (!email.trim() || !password) {
-      setError("Email dan password wajib diisi.");
+    if (
+      !email.trim() ||
+      !password
+    ) {
+      setError(
+        "Email dan password wajib diisi."
+      );
+
       return;
     }
 
@@ -195,34 +387,88 @@ export default function LoginPage() {
     try {
       setLoading(true);
 
+      // ==================================================
+      // LOGIN URL
+      // ==================================================
+
       const loginUrl =
         `${API_URL}/auth/login`;
 
-      console.log("=== LOGIN ===");
-      console.log("API URL:", API_URL);
-      console.log("Login URL:", loginUrl);
-      console.log("Email:", email.trim());
+      console.log(
+        "========================================"
+      );
 
-      const response = await fetch(loginUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim(),
-          password,
-        }),
-      });
+      console.log("LOGIN");
+
+      console.log(
+        "API URL:",
+        API_URL
+      );
+
+      console.log(
+        "Login URL:",
+        loginUrl
+      );
+
+      console.log(
+        "Email:",
+        email.trim()
+      );
+
+      console.log(
+        "========================================"
+      );
+
+      // ==================================================
+      // REQUEST LOGIN
+      // ==================================================
+
+      const response =
+        await fetch(
+          loginUrl,
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              Accept:
+                "application/json",
+            },
+
+            body:
+              JSON.stringify({
+                email:
+                  email.trim(),
+
+                password,
+              }),
+          }
+        );
+
+      // ==================================================
+      // STATUS LOGIN
+      // ==================================================
 
       console.log(
         "Login HTTP status:",
         response.status
       );
 
-      const data = await response.json();
+      // ==================================================
+      // PARSE RESPONSE
+      // ==================================================
 
-      console.log("Login response:", data);
+      const data =
+        await parseResponse(
+          response
+        );
+
+      console.log(
+        "LOGIN RESPONSE FULL:",
+        data
+      );
 
       // ==================================================
       // CEK RESPONSE
@@ -251,6 +497,10 @@ export default function LoginPage() {
         !!token
       );
 
+      // ==================================================
+      // TOKEN TIDAK ADA
+      // ==================================================
+
       if (!token) {
         throw new Error(
           "Login berhasil tetapi token tidak ditemukan dari server."
@@ -271,8 +521,12 @@ export default function LoginPage() {
         token
       );
 
+      console.log(
+        "Token berhasil disimpan."
+      );
+
       // ==================================================
-      // AMBIL DATA USER
+      // AMBIL USER DARI RESPONSE
       // ==================================================
 
       let user =
@@ -280,8 +534,13 @@ export default function LoginPage() {
         data?.data?.user ||
         null;
 
+      console.log(
+        "USER DARI BACKEND:",
+        user
+      );
+
       // ==================================================
-      // JIKA USER TIDAK ADA,
+      // JIKA USER TIDAK ADA
       // AMBIL DARI JWT
       // ==================================================
 
@@ -291,16 +550,19 @@ export default function LoginPage() {
         );
 
         console.log(
-          "Mengambil user dari JWT..."
+          "Mengambil data user dari JWT..."
         );
 
-        user = getUserFromToken(token);
-      }
+        user =
+          getUserFromToken(
+            token
+          );
 
-      console.log(
-        "User login:",
-        user
-      );
+        console.log(
+          "USER DARI JWT:",
+          user
+        );
+      }
 
       // ==================================================
       // CEK USER
@@ -308,7 +570,111 @@ export default function LoginPage() {
 
       if (!user) {
         throw new Error(
-          "Data user tidak dapat dibaca dari token."
+          "Data user tidak dapat dibaca."
+        );
+      }
+
+      // ==================================================
+      // PASTIKAN USER PUNYA NAME
+      // ==================================================
+
+      console.log(
+        "========================================"
+      );
+
+      console.log(
+        "MEMASTIKAN USER PUNYA NAME"
+      );
+
+      console.log(
+        "User sebelum diproses:",
+        user
+      );
+
+      // ==================================================
+      // JIKA NAME KOSONG
+      // ==================================================
+
+      if (
+        !user.name ||
+        user.name === "Pengguna" ||
+        user.name === ""
+      ) {
+        console.log(
+          "User tidak punya name."
+        );
+
+        // ==================================================
+        // 1. AMBIL DARI LOCAL STORAGE
+        // ==================================================
+
+        const savedName =
+          localStorage.getItem(
+            "registerName"
+          ) ||
+          localStorage.getItem(
+            "userName"
+          );
+
+        console.log(
+          "Nama dari localStorage:",
+          savedName
+        );
+
+        if (savedName) {
+          user.name =
+            savedName;
+
+          console.log(
+            "Nama diambil dari localStorage:",
+            user.name
+          );
+        }
+
+        // ==================================================
+        // 2. AMBIL DARI EMAIL
+        // ==================================================
+
+        else {
+          const emailName =
+            email.split("@")[0];
+
+          console.log(
+            "Nama dari email:",
+            emailName
+          );
+
+          if (emailName) {
+            user.name =
+              emailName
+                .charAt(0)
+                .toUpperCase() +
+              emailName.slice(1);
+
+            console.log(
+              "Nama dari email:",
+              user.name
+            );
+          }
+
+          // ==================================================
+          // 3. DEFAULT
+          // ==================================================
+
+          else {
+            user.name =
+              "Pengguna";
+
+            console.log(
+              "Menggunakan nama default:",
+              user.name
+            );
+          }
+        }
+      } else {
+        console.log(
+          "User sudah punya name:",
+          user.name
         );
       }
 
@@ -321,8 +687,23 @@ export default function LoginPage() {
         JSON.stringify(user)
       );
 
+      localStorage.setItem(
+        "userName",
+        user.name
+      );
+
+      console.log(
+        "USER FINAL DISIMPAN:",
+        user
+      );
+
+      console.log(
+        "Nama user:",
+        user.name
+      );
+
       // ==================================================
-      // CEK ROLE
+      // ROLE
       // ==================================================
 
       const role =
@@ -338,7 +719,7 @@ export default function LoginPage() {
       );
 
       // ==================================================
-      // REDIRECT SESUAI ROLE
+      // REDIRECT ADMIN
       // ==================================================
 
       if (role === "admin") {
@@ -353,6 +734,10 @@ export default function LoginPage() {
         return;
       }
 
+      // ==================================================
+      // REDIRECT AGENT
+      // ==================================================
+
       if (role === "agent") {
         console.log(
           "Redirect ke dashboard admin/agent"
@@ -364,6 +749,10 @@ export default function LoginPage() {
 
         return;
       }
+
+      // ==================================================
+      // REDIRECT USER
+      // ==================================================
 
       if (role === "user") {
         console.log(
@@ -383,7 +772,8 @@ export default function LoginPage() {
 
       throw new Error(
         `Role akun tidak dikenali: ${
-          user?.role || "tidak ada"
+          user?.role ||
+          "tidak ada"
         }`
       );
     } catch (err) {
@@ -428,6 +818,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-6">
+
       <div className="w-full max-w-5xl bg-white rounded-3xl shadow-xl overflow-hidden grid md:grid-cols-2">
 
         {/* ==================================================
@@ -440,19 +831,21 @@ export default function LoginPage() {
 
           <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl" />
 
-          {/* Logo */}
-
           <div className="relative z-10">
+
             <div className="flex items-center gap-3">
 
               <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center">
+
                 <Ticket
                   size={24}
                   className="text-white"
                 />
+
               </div>
 
               <div>
+
                 <h2 className="text-xl font-bold text-white">
                   Ticketing
                 </h2>
@@ -460,19 +853,21 @@ export default function LoginPage() {
                 <p className="text-xs text-slate-400">
                   Helpdesk System
                 </p>
+
               </div>
 
             </div>
-          </div>
 
-          {/* Description */}
+          </div>
 
           <div className="relative z-10">
 
             <p className="text-blue-400 text-sm font-medium mb-3">
+
               {isRegister
                 ? "Daftar Sekarang"
                 : "Helpdesk Support"}
+
             </p>
 
             <h1 className="text-4xl lg:text-5xl font-bold text-white leading-tight">
@@ -503,32 +898,37 @@ export default function LoginPage() {
 
           </div>
 
-          {/* Footer */}
-
           <div className="relative z-10 text-xs text-slate-500">
+
             © 2026 Ticketing System
+
           </div>
 
         </div>
 
         {/* ==================================================
-            RIGHT
+            RIGHT FORM
         ================================================== */}
 
         <div className="p-8 sm:p-10 lg:p-14">
 
-          {/* Mobile Logo */}
+          {/* ==================================================
+              MOBILE LOGO
+          ================================================== */}
 
           <div className="flex md:hidden items-center gap-3 mb-10">
 
             <div className="w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center">
+
               <Ticket
                 size={24}
                 className="text-white"
               />
+
             </div>
 
             <div>
+
               <h2 className="text-xl font-bold text-slate-900">
                 Ticketing
               </h2>
@@ -536,51 +936,68 @@ export default function LoginPage() {
               <p className="text-xs text-slate-500">
                 Helpdesk System
               </p>
+
             </div>
 
           </div>
 
-          {/* Header */}
+          {/* ==================================================
+              HEADER
+          ================================================== */}
 
           <div className="mb-8">
 
             <p className="text-sm font-medium text-blue-600 mb-2">
+
               {isRegister
                 ? "Buat akun"
                 : "Selamat datang"}
+
             </p>
 
             <h1 className="text-3xl font-bold text-slate-900">
+
               {isRegister
                 ? "Daftar akun baru"
                 : "Login ke akun Anda"}
+
             </h1>
 
             <p className="text-slate-500 mt-2">
+
               {isRegister
                 ? "Daftarkan akun untuk menggunakan Ticketing System."
                 : "Masuk untuk mengelola dan memantau tiket Anda."}
+
             </p>
 
           </div>
 
-          {/* Error */}
+          {/* ==================================================
+              ERROR
+          ================================================== */}
 
           {error && (
             <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+
               <p className="text-sm text-red-600">
                 {error}
               </p>
+
             </div>
           )}
 
-          {/* Success */}
+          {/* ==================================================
+              SUCCESS
+          ================================================== */}
 
           {success && (
             <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3">
+
               <p className="text-sm text-green-600">
                 {success}
               </p>
+
             </div>
           )}
 
@@ -593,7 +1010,9 @@ export default function LoginPage() {
             className="space-y-5"
           >
 
-            {/* Nama */}
+            {/* ==================================================
+                NAME
+            ================================================== */}
 
             {isRegister && (
               <div>
@@ -630,7 +1049,9 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Email */}
+            {/* ==================================================
+                EMAIL
+            ================================================== */}
 
             <div>
 
@@ -665,7 +1086,9 @@ export default function LoginPage() {
 
             </div>
 
-            {/* Password */}
+            {/* ==================================================
+                PASSWORD
+            ================================================== */}
 
             <div>
 
@@ -708,28 +1131,27 @@ export default function LoginPage() {
                   type="button"
                   onClick={() =>
                     setShowPassword(
-                      (prev) => !prev
+                      (prev) =>
+                        !prev
                     )
                   }
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-                  aria-label={
-                    showPassword
-                      ? "Sembunyikan password"
-                      : "Tampilkan password"
-                  }
+                  aria-label="Tampilkan password"
                 >
-                  {showPassword ? (
-                    <EyeOff size={19} />
-                  ) : (
-                    <Eye size={19} />
-                  )}
+
+                  <Eye
+                    size={19}
+                  />
+
                 </button>
 
               </div>
 
             </div>
 
-            {/* Confirm Password */}
+            {/* ==================================================
+                CONFIRM PASSWORD
+            ================================================== */}
 
             {isRegister && (
               <div>
@@ -766,23 +1188,29 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Button */}
+            {/* ==================================================
+                BUTTON
+            ================================================== */}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 disabled:cursor-not-allowed text-white font-semibold py-3.5 rounded-xl transition shadow-lg shadow-blue-600/20"
             >
+
               {loading
                 ? "Memproses..."
                 : isRegister
-                  ? "Daftar"
-                  : "Masuk"}
+                ? "Daftar"
+                : "Masuk"}
+
             </button>
 
           </form>
 
-          {/* Switch */}
+          {/* ==================================================
+              SWITCH
+          ================================================== */}
 
           <div className="mt-8 pt-6 border-t border-slate-100 text-center">
 
@@ -793,20 +1221,26 @@ export default function LoginPage() {
                 : "Belum punya akun?"}
 
               {isRegister ? (
+
                 <button
                   type="button"
-                  onClick={switchMode}
+                  onClick={
+                    switchMode
+                  }
                   className="ml-2 font-semibold text-blue-600 hover:text-blue-700"
                 >
                   Masuk
                 </button>
+
               ) : (
+
                 <Link
                   href="/register"
                   className="ml-2 font-semibold text-blue-600 hover:text-blue-700"
                 >
                   Daftar sekarang
                 </Link>
+
               )}
 
             </p>
@@ -814,7 +1248,9 @@ export default function LoginPage() {
           </div>
 
         </div>
+
       </div>
+
     </div>
   );
 }

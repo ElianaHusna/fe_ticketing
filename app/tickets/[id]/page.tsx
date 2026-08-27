@@ -105,7 +105,6 @@ const STATUS_OPTIONS: {
   status: TicketStatus;
   label: string;
 }[] = [
-  { status: "new", label: "Tiket Dibuat" },
   { status: "in_progress", label: "Sedang Diproses" },
   { status: "escalated", label: "Eskalasi" },
   { status: "resolved", label: "Selesai" },

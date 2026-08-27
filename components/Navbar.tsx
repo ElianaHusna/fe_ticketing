@@ -591,68 +591,7 @@ export default function Navbar() {
                         Profil Saya
                       </span>
                     </button>
-
-                    {/* PENGATURAN */}
-
-                    <button
-                      type="button"
-                      onClick={handleProfile}
-                      className="
-                        w-full
-                        flex
-                        items-center
-                        gap-3
-                        px-3
-                        py-3
-                        rounded-lg
-                        text-left
-                        text-slate-700
-                        hover:bg-slate-50
-                      "
-                    >
-                      <Settings size={18} />
-
-                      <span
-                        className="
-                          text-sm
-                          font-medium
-                        "
-                      >
-                        Pengaturan Profil
-                      </span>
-                    </button>
-
-                    {/* TAMBAH AKUN */}
-
-                    <button
-                      type="button"
-                      onClick={handleAddAccount}
-                      className="
-                        w-full
-                        flex
-                        items-center
-                        gap-3
-                        px-3
-                        py-3
-                        rounded-lg
-                        text-left
-                        text-slate-700
-                        hover:bg-slate-50
-                      "
-                    >
-                      <UserPlus size={18} />
-
-                      <span
-                        className="
-                          text-sm
-                          font-medium
-                        "
-                      >
-                        Tambah Akun
-                      </span>
-                    </button>
-
-                  </div>
+</div>
 
                   {/* LOGOUT */}
 

@@ -7,13 +7,17 @@ import {
   Search,
   RefreshCw,
   AlertTriangle,
-  ChevronRight,
   Clock3,
   CheckCircle2,
   CircleDot,
-  Filter,
   X,
   Trash2,
+  LayoutGrid,
+  List,
+  Eye,
+  Server,
+  Check,
+  FileSpreadsheet,
 } from "lucide-react";
 
 import AdminSidebar from "@/components/AdminSidebar";
@@ -69,15 +73,11 @@ export default function TicketsAdminPage() {
   const [tickets, setTickets] = useState<TicketData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] =
-    useState<TicketStatus | "all">("all");
-
-  // =====================================================
-  // DELETE STATE
-  // =====================================================
-
+  const [statusFilter, setStatusFilter] = useState<TicketStatus | "all">("all");
+  const [priorityFilter, setPriorityFilter] = useState<TicketPriority | "all">("all");
+  // ✅ DIUBAH: default dari "kanban" menjadi "table"
+  const [viewMode, setViewMode] = useState<"table" | "kanban">("table");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // =====================================================
@@ -99,11 +99,7 @@ export default function TicketsAdminPage() {
           : []
       );
     } catch (err) {
-      console.error(
-        "Gagal mengambil data tiket:",
-        err
-      );
-
+      console.error("Gagal mengambil data tiket:", err);
       if (err instanceof Error) {
         setError(err.message);
       } else {
@@ -122,43 +118,28 @@ export default function TicketsAdminPage() {
   // DELETE TICKET
   // =====================================================
 
-  const deleteTicket = async (
-    ticket: TicketData
-  ) => {
+  const deleteTicket = async (ticket: TicketData) => {
     const confirmed = window.confirm(
-      `Apakah kamu yakin ingin menghapus tiket ${ticket.ticketNumber}?\n\nTiket yang dihapus tidak dapat dikembalikan.`
+      `Apakah kamu yakin ingin menghapus tiket ${ticket.ticketNumber}?`
     );
 
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     try {
       setDeletingId(ticket.id);
       setError("");
 
-      // Endpoint hapus:
-      // DELETE /tickets/:id
       await apiFetch(`/tickets/${ticket.id}`, {
         method: "DELETE",
       });
 
-      // Hapus langsung dari tampilan
       setTickets((currentTickets) =>
-        currentTickets.filter(
-          (item) => item.id !== ticket.id
-        )
+        currentTickets.filter((item) => item.id !== ticket.id)
       );
     } catch (err) {
-      console.error(
-        "Gagal menghapus tiket:",
-        err
-      );
-
+      console.error("Gagal menghapus tiket:", err);
       if (err instanceof Error) {
-        setError(
-          `Gagal menghapus tiket: ${err.message}`
-        );
+        setError(`Gagal menghapus tiket: ${err.message}`);
       } else {
         setError("Gagal menghapus tiket.");
       }
@@ -168,227 +149,198 @@ export default function TicketsAdminPage() {
   };
 
   // =====================================================
+  // EXPORT CSV
+  // =====================================================
+
+  const exportToCSV = () => {
+    try {
+      const dataToExport = filteredTickets.length > 0 ? filteredTickets : tickets;
+
+      if (dataToExport.length === 0) {
+        alert("Tidak ada data tiket untuk diekspor.");
+        return;
+      }
+
+      const headers = [
+        "No. Tiket",
+        "Judul",
+        "Pelapor",
+        "Email",
+        "Kategori",
+        "Prioritas",
+        "Status",
+        "Tanggal Dibuat",
+        "Sumber",
+      ];
+
+      const rows = dataToExport.map((ticket) => [
+        ticket.ticketNumber,
+        `"${ticket.subject.replace(/"/g, '""')}"`,
+        `"${ticket.requesterName.replace(/"/g, '""')}"`,
+        ticket.requesterEmail,
+        formatCategory(ticket.category),
+        getPriorityLabel(ticket.priority),
+        getStatusLabel(ticket.status),
+        new Date(ticket.createdAt).toLocaleString("id-ID", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        }),
+        ticket.source || "Web",
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map((row) => row.join(",")),
+      ].join("\n");
+
+      const blob = new Blob(["\uFEFF" + csvContent], {
+        type: "text/csv;charset=utf-8;",
+      });
+
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute(
+        "download",
+        `tickets_export_${new Date().toISOString().split("T")[0]}.csv`
+      );
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      alert(`Berhasil mengekspor ${dataToExport.length} tiket ke CSV!`);
+    } catch (err) {
+      console.error("Gagal ekspor CSV:", err);
+      alert("Gagal mengekspor data. Silakan coba lagi.");
+    }
+  };
+
+  // =====================================================
   // FILTER TICKETS
   // =====================================================
 
   const filteredTickets = useMemo(() => {
-    const keyword = search
-      .trim()
-      .toLowerCase();
+    const keyword = search.trim().toLowerCase();
 
     return tickets.filter((ticket) => {
       const matchesStatus =
         statusFilter === "all" ||
         ticket.status === statusFilter;
 
+      const matchesPriority =
+        priorityFilter === "all" ||
+        ticket.priority === priorityFilter;
+
       const matchesSearch =
         !keyword ||
-        ticket.ticketNumber
-          ?.toLowerCase()
-          .includes(keyword) ||
-        ticket.subject
-          ?.toLowerCase()
-          .includes(keyword) ||
-        ticket.requesterName
-          ?.toLowerCase()
-          .includes(keyword) ||
-        ticket.requesterEmail
-          ?.toLowerCase()
-          .includes(keyword) ||
-        ticket.category
-          ?.toLowerCase()
-          .includes(keyword);
+        ticket.ticketNumber?.toLowerCase().includes(keyword) ||
+        ticket.subject?.toLowerCase().includes(keyword) ||
+        ticket.requesterName?.toLowerCase().includes(keyword) ||
+        ticket.requesterEmail?.toLowerCase().includes(keyword) ||
+        ticket.category?.toLowerCase().includes(keyword);
 
-      return matchesStatus && matchesSearch;
+      return matchesStatus && matchesPriority && matchesSearch;
     });
-  }, [tickets, search, statusFilter]);
+  }, [tickets, search, statusFilter, priorityFilter]);
 
   // =====================================================
-  // STATISTIK
+  // HELPERS
   // =====================================================
 
-  const totalTickets = tickets.length;
-
-  const newTickets = tickets.filter(
-    (ticket) => ticket.status === "new"
-  ).length;
-
-  const inProgressTickets = tickets.filter(
-    (ticket) =>
-      ticket.status === "in_progress"
-  ).length;
-
-  const resolvedTickets = tickets.filter(
-    (ticket) =>
-      ticket.status === "resolved" ||
-      ticket.status === "closed"
-  ).length;
-
-  // =====================================================
-  // STATUS LABEL
-  // =====================================================
-
-  const getStatusLabel = (
-    status: TicketStatus
-  ) => {
-    switch (status) {
-      case "new":
-        return "Baru";
-
-      case "in_progress":
-        return "Diproses";
-
-      case "resolved":
-        return "Selesai";
-
-      case "closed":
-        return "Ditutup";
-
-      default:
-        return status;
-    }
+  const getStatusLabel = (status: TicketStatus) => {
+    const map = {
+      new: "Belum Dilihat",
+      in_progress: "Diproses",
+      resolved: "Selesai",
+      closed: "Ditutup",
+    };
+    return map[status] || status;
   };
 
-  // =====================================================
-  // STATUS CLASS
-  // =====================================================
-
-  const getStatusClass = (
-    status: TicketStatus
-  ) => {
-    switch (status) {
-      case "new":
-        return "bg-blue-50 text-blue-700";
-
-      case "in_progress":
-        return "bg-amber-50 text-amber-700";
-
-      case "resolved":
-        return "bg-emerald-50 text-emerald-700";
-
-      case "closed":
-        return "bg-slate-100 text-slate-700";
-
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
+  const getStatusColor = (status: TicketStatus) => {
+    const map = {
+      new: "bg-blue-500",
+      in_progress: "bg-amber-500",
+      resolved: "bg-emerald-500",
+      closed: "bg-gray-400",
+    };
+    return map[status] || "bg-gray-400";
   };
 
-  // =====================================================
-  // PRIORITY CLASS
-  // =====================================================
-
-  const getPriorityClass = (
-    priority: TicketPriority
-  ) => {
-    switch (priority) {
-      case "urgent":
-        return "bg-red-100 text-red-700";
-
-      case "high":
-        return "bg-orange-100 text-orange-700";
-
-      case "medium":
-        return "bg-amber-100 text-amber-700";
-
-      case "low":
-        return "bg-slate-100 text-slate-600";
-
-      default:
-        return "bg-slate-100 text-slate-600";
-    }
+  const getStatusBg = (status: TicketStatus) => {
+    const map = {
+      new: "bg-blue-50 border-blue-200 text-blue-700",
+      in_progress: "bg-amber-50 border-amber-200 text-amber-700",
+      resolved: "bg-emerald-50 border-emerald-200 text-emerald-700",
+      closed: "bg-gray-50 border-gray-200 text-gray-600",
+    };
+    return map[status] || "bg-gray-50 border-gray-200 text-gray-600";
   };
 
-  // =====================================================
-  // CATEGORY
-  // =====================================================
-
-  const formatCategory = (
-    category: string
-  ) => {
-    switch (category) {
-      case "technical":
-        return "Teknis";
-
-      case "billing":
-        return "Billing";
-
-      case "account":
-        return "Akun";
-
-      case "feature_request":
-        return "Fitur";
-
-      case "other":
-        return "Lainnya";
-
-      default:
-        return category;
-    }
+  const getPriorityLabel = (priority: TicketPriority) => {
+    const map = {
+      urgent: "Sangat Tinggi",
+      high: "Tinggi",
+      medium: "Sedang",
+      low: "Rendah",
+    };
+    return map[priority] || priority;
   };
 
-  // =====================================================
-  // DATE
-  // =====================================================
+  const getPriorityColor = (priority: TicketPriority) => {
+    const map = {
+      urgent: "text-red-600 bg-red-50",
+      high: "text-orange-600 bg-orange-50",
+      medium: "text-amber-600 bg-amber-50",
+      low: "text-gray-500 bg-gray-50",
+    };
+    return map[priority] || "text-gray-500 bg-gray-50";
+  };
 
-  const formatDate = (
-    date: string
-  ) => {
+  const formatCategory = (category: string) => {
+    const map: Record<string, string> = {
+      technical: "Teknis",
+      billing: "Billing",
+      account: "Akun",
+      feature_request: "Fitur",
+      other: "Lainnya",
+    };
+    return map[category] || category;
+  };
+
+  const formatDate = (date: string) => {
     if (!date) return "-";
-
-    return new Date(
-      date
-    ).toLocaleDateString(
-      "id-ID",
-      {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }
-    );
+    const d = new Date(date);
+    const now = new Date();
+    const diff = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60));
+    
+    if (diff < 1) return "Baru saja";
+    if (diff < 24) return `${diff} jam lalu`;
+    if (diff < 48) return "Kemarin";
+    return d.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
   };
-
-  // =====================================================
-  // RESET FILTER
-  // =====================================================
 
   const resetFilter = () => {
     setSearch("");
     setStatusFilter("all");
+    setPriorityFilter("all");
   };
 
-  const hasFilter =
-    search.trim() !== "" ||
-    statusFilter !== "all";
+  const hasFilter = search.trim() !== "" || statusFilter !== "all" || priorityFilter !== "all";
 
-  // =====================================================
-  // STATUS FILTER
-  // =====================================================
-
-  const statusFilters: {
-    value: TicketStatus | "all";
-    label: string;
-  }[] = [
-    {
-      value: "all",
-      label: "Semua",
-    },
-    {
-      value: "new",
-      label: "Baru",
-    },
-    {
-      value: "in_progress",
-      label: "Diproses",
-    },
-    {
-      value: "resolved",
-      label: "Selesai",
-    },
-    {
-      value: "closed",
-      label: "Ditutup",
-    },
+  const kanbanColumns = [
+    { id: "new", label: "Belum Dilihat", icon: CircleDot, color: "blue", desc: "Menunggu untuk dilihat" },
+    { id: "in_progress", label: "Diproses", icon: Clock3, color: "amber", desc: "Dalam troubleshooting" },
+    { id: "resolved", label: "Selesai", icon: CheckCircle2, color: "emerald", desc: "Telah diselesaikan" },
+    { id: "closed", label: "Ditutup", icon: Check, color: "gray", desc: "Dokumentasi" },
   ];
 
   // =====================================================
@@ -396,789 +348,409 @@ export default function TicketsAdminPage() {
   // =====================================================
 
   return (
-    <div className="min-h-screen bg-[#f5f7fb]">
-
-      {/* =================================================
-          SIDEBAR
-      ================================================= */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
 
       <AdminSidebar />
-
-      {/* =================================================
-          MAIN
-      ================================================= */}
 
       <main className="ml-64 min-h-screen">
 
         {/* =================================================
-            HEADER
+            HEADER - CLEAN & MINIMALIS
         ================================================= */}
-
-        <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur">
-
-          <div className="flex min-h-[82px] items-center justify-between px-8">
-
-            <div>
-
-              <div className="flex items-center gap-2">
-
-                <span className="h-2 w-2 rounded-full bg-blue-600" />
-
-                <p className="text-xs font-bold uppercase tracking-[0.15em] text-blue-600">
-                  Admin Helpdesk
-                </p>
-
+        <header className="bg-white/80 backdrop-blur-lg border-b border-slate-200/60 sticky top-0 z-30">
+          <div className="px-8 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg shadow-blue-600/25">
+                  <Server size={18} className="text-white" />
+                </div>
+                <div>
+                  <h1 className="text-lg font-bold text-slate-900 tracking-tight">
+                    Manajemen Tiket
+                  </h1>
+                  <p className="text-xs text-slate-500 font-medium">
+                    Kelola semua tiket layanan IT
+                  </p>
+                </div>
               </div>
 
-              <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
-                Semua Tiket
-              </h1>
-
-              <p className="mt-1 text-sm text-slate-500">
-                Kelola dan pantau seluruh tiket
-                yang masuk ke sistem.
-              </p>
-
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={fetchTickets}
+                  disabled={loading}
+                  className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-100/80 transition-all duration-200 disabled:opacity-50"
+                >
+                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+                </button>
+                <div className="w-px h-6 bg-slate-200" />
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100/80 border border-slate-200/60">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-bold shadow-lg shadow-blue-600/20">
+                    AD
+                  </div>
+                  <span className="text-sm font-semibold text-slate-700">Admin</span>
+                </div>
+              </div>
             </div>
-
-            <button
-              type="button"
-              onClick={fetchTickets}
-              disabled={loading || deletingId !== null}
-              className="
-                flex
-                h-10
-                items-center
-                gap-2
-                rounded-xl
-                border
-                border-slate-200
-                bg-white
-                px-4
-                text-sm
-                font-semibold
-                text-slate-600
-                shadow-sm
-                transition
-                hover:border-slate-300
-                hover:bg-slate-50
-                disabled:cursor-not-allowed
-                disabled:opacity-50
-              "
-            >
-
-              <RefreshCw
-                size={16}
-                className={
-                  loading
-                    ? "animate-spin"
-                    : ""
-                }
-              />
-
-              Refresh
-
-            </button>
-
           </div>
-
         </header>
 
         {/* =================================================
             CONTENT
         ================================================= */}
+        <div className="p-6">
 
-        <div className="p-8">
-
-          {/* =================================================
-              ERROR
-          ================================================= */}
-
+          {/* Error */}
           {error && (
-            <div className="mb-6 flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 px-5 py-4">
-
-              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-red-100">
-
-                <AlertTriangle
-                  size={18}
-                  className="text-red-600"
-                />
-
-              </div>
-
-              <div className="flex-1">
-
-                <p className="font-semibold text-red-700">
-                  Terjadi Kesalahan
-                </p>
-
-                <p className="mt-1 text-sm text-red-600">
-                  {error}
-                </p>
-
-              </div>
-
+            <div className="mb-5 flex items-center gap-3 rounded-2xl border border-red-200/80 bg-red-50/80 backdrop-blur-sm px-5 py-3.5 shadow-sm">
+              <AlertTriangle size={17} className="text-red-500" />
+              <p className="text-sm text-red-600 flex-1 font-medium">{error}</p>
               <button
                 type="button"
                 onClick={() => setError("")}
-                className="text-red-400 transition hover:text-red-600"
+                className="p-1 rounded-lg text-red-400 hover:text-red-600 hover:bg-red-100 transition-all"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
-
             </div>
           )}
 
           {/* =================================================
-              STAT CARDS
+              TOOLBAR - MINIMALIS & ELEGAN
           ================================================= */}
-
-          <div className="grid grid-cols-2 gap-5 xl:grid-cols-4">
-
-            {/* TOTAL */}
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-
-              <div className="flex items-start justify-between">
-
-                <div>
-
-                  <p className="text-sm font-medium text-slate-500">
-                    Semua Tiket
-                  </p>
-
-                  <p className="mt-3 text-3xl font-bold tracking-tight text-slate-900">
-                    {loading
-                      ? "..."
-                      : totalTickets}
-                  </p>
-
-                  <p className="mt-2 text-xs text-slate-400">
-                    Total tiket masuk
-                  </p>
-
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
-
-                  <Ticket
-                    size={22}
-                    className="text-blue-600"
-                  />
-
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* NEW */}
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-
-              <div className="flex items-start justify-between">
-
-                <div>
-
-                  <p className="text-sm font-medium text-slate-500">
-                    Tiket Baru
-                  </p>
-
-                  <p className="mt-3 text-3xl font-bold tracking-tight text-blue-600">
-                    {loading
-                      ? "..."
-                      : newTickets}
-                  </p>
-
-                  <p className="mt-2 text-xs text-slate-400">
-                    Menunggu ditangani
-                  </p>
-
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50">
-
-                  <CircleDot
-                    size={22}
-                    className="text-blue-600"
-                  />
-
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* IN PROGRESS */}
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-
-              <div className="flex items-start justify-between">
-
-                <div>
-
-                  <p className="text-sm font-medium text-slate-500">
-                    Sedang Diproses
-                  </p>
-
-                  <p className="mt-3 text-3xl font-bold tracking-tight text-amber-600">
-                    {loading
-                      ? "..."
-                      : inProgressTickets}
-                  </p>
-
-                  <p className="mt-2 text-xs text-slate-400">
-                    Sedang ditangani agent
-                  </p>
-
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50">
-
-                  <Clock3
-                    size={22}
-                    className="text-amber-600"
-                  />
-
-                </div>
-
-              </div>
-
-            </div>
-
-            {/* RESOLVED */}
-
-            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-
-              <div className="flex items-start justify-between">
-
-                <div>
-
-                  <p className="text-sm font-medium text-slate-500">
-                    Tiket Selesai
-                  </p>
-
-                  <p className="mt-3 text-3xl font-bold tracking-tight text-emerald-600">
-                    {loading
-                      ? "..."
-                      : resolvedTickets}
-                  </p>
-
-                  <p className="mt-2 text-xs text-slate-400">
-                    Selesai atau ditutup
-                  </p>
-
-                </div>
-
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50">
-
-                  <CheckCircle2
-                    size={22}
-                    className="text-emerald-600"
-                  />
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-          {/* =================================================
-              FILTER
-          ================================================= */}
-
-          <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-
-              {/* SEARCH */}
-
-              <div className="relative w-full xl:max-w-md">
-
-                <Search
-                  size={18}
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
-                />
-
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm p-4 mb-6">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3 flex-1 bg-slate-50/80 rounded-xl px-4 py-2 border border-slate-200/60 focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-400/20 transition-all">
+                <Search size="17" className="text-slate-400" />
                 <input
                   type="text"
                   value={search}
-                  onChange={(e) =>
-                    setSearch(e.target.value)
-                  }
-                  placeholder="Cari nomor tiket, subject, nama, email..."
-                  className="
-                    h-11
-                    w-full
-                    rounded-xl
-                    border
-                    border-slate-200
-                    bg-slate-50
-                    pl-11
-                    pr-10
-                    text-sm
-                    text-slate-700
-                    outline-none
-                    transition
-                    placeholder:text-slate-400
-                    focus:border-blue-400
-                    focus:bg-white
-                    focus:ring-4
-                    focus:ring-blue-50
-                  "
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Cari tiket..."
+                  className="flex-1 bg-transparent border-none outline-none text-sm text-slate-700 placeholder:text-slate-400 font-medium"
                 />
-
                 {search && (
                   <button
                     type="button"
-                    onClick={() =>
-                      setSearch("")
-                    }
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                    onClick={() => setSearch("")}
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200 transition-all"
                   >
-                    <X size={16} />
+                    <X size="14" />
                   </button>
                 )}
-
               </div>
 
-              {/* STATUS FILTER */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as TicketStatus | "all")}
+                  className="px-3.5 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white text-slate-600 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all cursor-pointer"
+                >
+                  <option value="all">Semua Status</option>
+                  <option value="new">Belum Dilihat</option>
+                  <option value="in_progress">Diproses</option>
+                  <option value="resolved">Selesai</option>
+                  <option value="closed">Ditutup</option>
+                </select>
 
-              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={priorityFilter}
+                  onChange={(e) => setPriorityFilter(e.target.value as TicketPriority | "all")}
+                  className="px-3.5 py-2 text-xs font-medium border border-slate-200 rounded-xl bg-white text-slate-600 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all cursor-pointer"
+                >
+                  <option value="all">Semua Prioritas</option>
+                  <option value="urgent">Sangat Tinggi</option>
+                  <option value="high">Tinggi</option>
+                  <option value="medium">Sedang</option>
+                  <option value="low">Rendah</option>
+                </select>
 
-                <div className="mr-1 flex items-center gap-2 text-sm font-medium text-slate-500">
-
-                  <Filter size={16} />
-
-                  Status:
-
+                <div className="flex items-center gap-1 p-1 bg-slate-100/80 rounded-xl border border-slate-200/60">
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("kanban")}
+                    className={`p-2 rounded-lg transition-all duration-200 ${
+                      viewMode === "kanban"
+                        ? "bg-white shadow-sm text-blue-600 ring-1 ring-blue-200"
+                        : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+                    }`}
+                  >
+                    <LayoutGrid size="15" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode("table")}
+                    className={`p-2 rounded-lg transition-all duration-200 ${
+                      viewMode === "table"
+                        ? "bg-white shadow-sm text-blue-600 ring-1 ring-blue-200"
+                        : "text-slate-400 hover:text-slate-600 hover:bg-white/50"
+                    }`}
+                  >
+                    <List size="15" />
+                  </button>
                 </div>
-
-                {statusFilters.map(
-                  (filter) => (
-                    <button
-                      key={filter.value}
-                      type="button"
-                      onClick={() =>
-                        setStatusFilter(
-                          filter.value
-                        )
-                      }
-                      className={`
-                        rounded-xl
-                        px-3.5
-                        py-2
-                        text-xs
-                        font-semibold
-                        transition
-                        ${
-                          statusFilter ===
-                          filter.value
-                            ? "bg-blue-600 text-white shadow-sm"
-                            : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                        }
-                      `}
-                    >
-                      {filter.label}
-                    </button>
-                  )
-                )}
-
-              </div>
-
-            </div>
-
-            {hasFilter && (
-              <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4">
-
-                <p className="text-xs text-slate-500">
-
-                  Menampilkan{" "}
-
-                  <span className="font-bold text-slate-700">
-                    {filteredTickets.length}
-                  </span>{" "}
-
-                  dari{" "}
-
-                  <span className="font-bold text-slate-700">
-                    {tickets.length}
-                  </span>{" "}
-
-                  tiket
-
-                </p>
 
                 <button
                   type="button"
-                  onClick={resetFilter}
-                  className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                  onClick={exportToCSV}
+                  disabled={tickets.length === 0}
+                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-xs font-semibold hover:from-emerald-600 hover:to-emerald-700 shadow-lg shadow-emerald-600/25 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Reset filter
+                  <FileSpreadsheet size="15" />
+                  CSV
                 </button>
+              </div>
+            </div>
 
+            {hasFilter && (
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-200/60">
+                <p className="text-xs text-slate-500">
+                  Menampilkan <span className="font-bold text-slate-700">{filteredTickets.length}</span> dari <span className="font-bold text-slate-700">{tickets.length}</span> tiket
+                </p>
+                <button
+                  type="button"
+                  onClick={resetFilter}
+                  className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline transition-all"
+                >
+                  Reset Filter
+                </button>
               </div>
             )}
-
           </div>
 
           {/* =================================================
-              TABLE
+              KANBAN VIEW
           ================================================= */}
+          {viewMode === "kanban" && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+              {kanbanColumns.map((column) => {
+                const Icon = column.icon;
+                const columnTickets = filteredTickets.filter(
+                  (t) => t.status === column.id
+                );
 
-          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_2px_10px_rgba(15,23,42,0.04)]">
-
-            {/* TABLE HEADER */}
-
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-
-              <div>
-
-                <div className="flex items-center gap-2">
-
-                  <h2 className="text-base font-bold text-slate-900">
-                    Daftar Tiket
-                  </h2>
-
-                  <span className="rounded-full bg-blue-50 px-2.5 py-1 text-[10px] font-bold text-blue-600">
-                    {filteredTickets.length}
-                  </span>
-
-                </div>
-
-                <p className="mt-1 text-xs text-slate-500">
-                  Seluruh tiket yang masuk ke sistem
-                </p>
-
-              </div>
-
-            </div>
-
-            {/* LOADING */}
-
-            {loading ? (
-              <div className="py-24 text-center">
-
-                <RefreshCw
-                  size={28}
-                  className="mx-auto animate-spin text-blue-600"
-                />
-
-                <p className="mt-4 text-sm font-medium text-slate-500">
-                  Memuat tiket...
-                </p>
-
-                <p className="mt-1 text-xs text-slate-400">
-                  Mengambil data dari server
-                </p>
-
-              </div>
-
-            ) : filteredTickets.length === 0 ? (
-              <div className="py-24 text-center">
-
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100">
-
-                  <Ticket
-                    size={30}
-                    className="text-slate-300"
-                  />
-
-                </div>
-
-                <p className="mt-5 font-semibold text-slate-600">
-                  Tidak ada tiket
-                </p>
-
-                <p className="mt-1 text-sm text-slate-400">
-                  {hasFilter
-                    ? "Tidak ada tiket yang sesuai dengan filter."
-                    : "Belum ada tiket yang masuk ke sistem."}
-                </p>
-
-                {hasFilter && (
-                  <button
-                    type="button"
-                    onClick={resetFilter}
-                    className="mt-4 rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                return (
+                  <div
+                    key={column.id}
+                    className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden"
                   >
-                    Reset Filter
-                  </button>
-                )}
+                    <div className={`px-4 py-3.5 border-b border-slate-200/60 bg-${column.color}-50/40`}>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2.5">
+                          <Icon size="16" className={`text-${column.color}-600`} />
+                          <h3 className="font-bold text-slate-800 text-sm">
+                            {column.label}
+                          </h3>
+                        </div>
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full bg-${column.color}-100 text-${column.color}-700 shadow-sm`}>
+                          {columnTickets.length}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1 font-medium">{column.desc}</p>
+                    </div>
 
-              </div>
+                    <div className="p-3 space-y-3 max-h-[550px] overflow-y-auto custom-scrollbar">
+                      {loading ? (
+                        <div className="py-8 text-center">
+                          <RefreshCw size="18" className="mx-auto animate-spin text-blue-500" />
+                        </div>
+                      ) : columnTickets.length === 0 ? (
+                        <div className="py-8 text-center">
+                          <p className="text-xs text-slate-400 font-medium">Tidak ada tiket</p>
+                        </div>
+                      ) : (
+                        columnTickets.map((ticket) => {
+                          const priorityColor = getPriorityColor(ticket.priority);
+                          const isDeleting = deletingId === ticket.id;
 
-            ) : (
+                          return (
+                            <div
+                              key={ticket.id}
+                              className="group bg-white rounded-xl border border-slate-200/80 p-4 hover:shadow-lg hover:border-blue-300/50 transition-all duration-300"
+                            >
+                              <Link href={`/tickets/${ticket.id}`} className="block">
+                                <p className="text-[10px] font-bold text-blue-600 tracking-wide">
+                                  {ticket.ticketNumber}
+                                </p>
+                                <p className="mt-1.5 text-sm font-semibold text-slate-800 line-clamp-2 leading-snug">
+                                  {ticket.subject}
+                                </p>
+                                <p className="mt-1 text-[10px] text-slate-400 font-medium truncate">
+                                  {ticket.requesterName}
+                                </p>
+                              </Link>
 
+                              <div className="mt-3 flex items-center justify-between">
+                                <span className={`text-[9px] font-bold px-2.5 py-1 rounded-full ${priorityColor} shadow-sm`}>
+                                  {getPriorityLabel(ticket.priority)}
+                                </span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] text-slate-400 font-medium">
+                                    {formatDate(ticket.createdAt)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => deleteTicket(ticket)}
+                                    disabled={isDeleting}
+                                    className="p-1.5 rounded-lg hover:bg-red-50 text-slate-300 hover:text-red-600 transition-all duration-200 opacity-0 group-hover:opacity-100"
+                                  >
+                                    {isDeleting ? (
+                                      <RefreshCw size="11" className="animate-spin" />
+                                    ) : (
+                                      <Trash2 size="11" />
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* =================================================
+              TABLE VIEW
+          ================================================= */}
+          {viewMode === "table" && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
-
-                <table className="w-full min-w-[1200px]">
-
+                <table className="w-full">
                   <thead>
-
-                    <tr className="border-b border-slate-200 bg-slate-50/70">
-
-                      <th className="px-6 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                    <tr className="border-b border-slate-200/60 bg-slate-50/80">
+                      <th className="px-5 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         Tiket
                       </th>
-
-                      <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         Pelapor
                       </th>
-
-                      <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                        Kategori
-                      </th>
-
-                      <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         Prioritas
                       </th>
-
-                      <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         Status
                       </th>
-
-                      <th className="px-4 py-4 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-3.5 text-left text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         Tanggal
                       </th>
-
-                      <th className="px-4 py-4 text-right text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                      <th className="px-4 py-3.5 text-right text-[10px] font-bold uppercase tracking-wider text-slate-500">
                         Aksi
                       </th>
-
                     </tr>
-
                   </thead>
-
                   <tbody>
-
-                    {filteredTickets.map(
-                      (ticket) => {
-
-                        const isDeleting =
-                          deletingId === ticket.id;
+                    {loading ? (
+                      <tr>
+                        <td colSpan={6} className="py-16 text-center">
+                          <RefreshCw size="24" className="mx-auto animate-spin text-blue-600" />
+                          <p className="mt-3 text-sm text-slate-500 font-medium">Memuat data...</p>
+                        </td>
+                      </tr>
+                    ) : filteredTickets.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-16 text-center">
+                          <Ticket size="28" className="mx-auto text-slate-300" />
+                          <p className="mt-3 text-sm text-slate-500 font-medium">Tidak ada tiket ditemukan</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredTickets.map((ticket) => {
+                        const isDeleting = deletingId === ticket.id;
+                        const statusBg = getStatusBg(ticket.status);
+                        const priorityColor = getPriorityColor(ticket.priority);
 
                         return (
                           <tr
                             key={ticket.id}
-                            className="group border-b border-slate-100 transition last:border-b-0 hover:bg-blue-50/30"
+                            className="border-b border-slate-100/80 hover:bg-blue-50/40 transition-all duration-200 group"
                           >
-
-                            {/* TICKET */}
-
-                            <td className="px-6 py-4">
-
-                              <Link
-                                href={`/tickets/${ticket.id}`}
-                                className="block"
-                              >
-
-                                <p className="text-xs font-bold text-blue-600">
+                            <td className="px-5 py-4">
+                              <Link href={`/tickets/${ticket.id}`} className="block">
+                                <p className="text-[10px] font-bold text-blue-600 tracking-wide">
                                   {ticket.ticketNumber}
                                 </p>
-
-                                <p className="mt-1 max-w-[280px] truncate text-sm font-semibold text-slate-800">
+                                <p className="mt-0.5 text-sm font-semibold text-slate-800 max-w-[220px] truncate">
                                   {ticket.subject}
                                 </p>
-
                               </Link>
-
                             </td>
-
-                            {/* REQUESTER */}
-
                             <td className="px-4 py-4">
-
-                              <p className="max-w-[180px] truncate text-sm font-semibold text-slate-700">
+                              <p className="text-sm font-semibold text-slate-700">
                                 {ticket.requesterName}
                               </p>
-
-                              <p className="mt-1 max-w-[200px] truncate text-xs text-slate-400">
+                              <p className="text-[10px] text-slate-400 font-medium">
                                 {ticket.requesterEmail}
                               </p>
-
                             </td>
-
-                            {/* CATEGORY */}
-
                             <td className="px-4 py-4">
-
-                              <span className="inline-flex rounded-lg bg-indigo-50 px-2.5 py-1 text-xs font-semibold text-indigo-700">
-                                {formatCategory(
-                                  ticket.category
-                                )}
+                              <span className={`text-[10px] font-bold px-3 py-1 rounded-full ${priorityColor} shadow-sm`}>
+                                {getPriorityLabel(ticket.priority)}
                               </span>
-
                             </td>
-
-                            {/* PRIORITY */}
-
                             <td className="px-4 py-4">
-
-                              <span
-                                className={`
-                                  inline-flex
-                                  rounded-full
-                                  px-2.5
-                                  py-1
-                                  text-[11px]
-                                  font-bold
-                                  uppercase
-                                  ${getPriorityClass(
-                                    ticket.priority
-                                  )}
-                                `}
-                              >
-                                {ticket.priority}
+                              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold border ${statusBg}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${getStatusColor(ticket.status)}`} />
+                                {getStatusLabel(ticket.status)}
                               </span>
-
                             </td>
-
-                            {/* STATUS */}
-
                             <td className="px-4 py-4">
-
-                              <span
-                                className={`
-                                  inline-flex
-                                  rounded-full
-                                  px-2.5
-                                  py-1
-                                  text-[11px]
-                                  font-semibold
-                                  ${getStatusClass(
-                                    ticket.status
-                                  )}
-                                `}
-                              >
-                                {getStatusLabel(
-                                  ticket.status
-                                )}
-                              </span>
-
-                            </td>
-
-                            {/* DATE */}
-
-                            <td className="px-4 py-4">
-
-                              <p className="text-xs font-medium text-slate-600">
-                                {formatDate(
-                                  ticket.createdAt
-                                )}
+                              <p className="text-sm text-slate-500 font-medium">
+                                {formatDate(ticket.createdAt)}
                               </p>
-
-                              <p className="mt-1 text-[11px] text-slate-400">
-                                {ticket.source}
-                              </p>
-
                             </td>
-
-                            {/* ACTION */}
-
                             <td className="px-4 py-4">
-
-                              <div className="flex items-center justify-end gap-2">
-
-                                {/* DETAIL */}
-
+                              <div className="flex items-center justify-end gap-1">
                                 <Link
                                   href={`/tickets/${ticket.id}`}
-                                  className="
-                                    inline-flex
-                                    items-center
-                                    gap-1
-                                    rounded-xl
-                                    bg-slate-100
-                                    px-3
-                                    py-2
-                                    text-xs
-                                    font-semibold
-                                    text-slate-600
-                                    transition
-                                    hover:bg-blue-600
-                                    hover:text-white
-                                  "
+                                  className="p-2 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition-all duration-200"
                                 >
-                                  Detail
-
-                                  <ChevronRight
-                                    size={14}
-                                  />
-
+                                  <Eye size="15" />
                                 </Link>
-
-                                {/* DELETE */}
-
                                 <button
                                   type="button"
-                                  onClick={() =>
-                                    deleteTicket(
-                                      ticket
-                                    )
-                                  }
-                                  disabled={
-                                    isDeleting ||
-                                    deletingId !== null
-                                  }
-                                  title="Hapus tiket"
-                                  className="
-                                    inline-flex
-                                    items-center
-                                    justify-center
-                                    rounded-xl
-                                    bg-red-50
-                                    px-3
-                                    py-2
-                                    text-xs
-                                    font-semibold
-                                    text-red-600
-                                    transition
-                                    hover:bg-red-600
-                                    hover:text-white
-                                    disabled:cursor-not-allowed
-                                    disabled:opacity-50
-                                  "
+                                  onClick={() => deleteTicket(ticket)}
+                                  disabled={isDeleting}
+                                  className="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-all duration-200"
                                 >
-
                                   {isDeleting ? (
-                                    <RefreshCw
-                                      size={15}
-                                      className="animate-spin"
-                                    />
+                                    <RefreshCw size="15" className="animate-spin" />
                                   ) : (
-                                    <Trash2
-                                      size={15}
-                                    />
+                                    <Trash2 size="15" />
                                   )}
-
                                 </button>
-
                               </div>
-
                             </td>
-
                           </tr>
                         );
-                      }
+                      })
                     )}
-
                   </tbody>
-
                 </table>
-
               </div>
 
-            )}
-
-          </div>
-
+              {!loading && filteredTickets.length > 0 && (
+                <div className="border-t border-slate-200/60 px-5 py-3 bg-slate-50/80 flex items-center justify-between text-xs text-slate-500">
+                  <span className="font-medium">
+                    Menampilkan {filteredTickets.length} dari {tickets.length} tiket
+                  </span>
+                  <button
+                    type="button"
+                    onClick={exportToCSV}
+                    className="flex items-center gap-2 text-emerald-600 hover:text-emerald-700 font-semibold transition-all duration-200"
+                  >
+                    <FileSpreadsheet size="15" />
+                    Ekspor CSV
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
-
       </main>
-
     </div>
   );
 }

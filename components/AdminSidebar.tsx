@@ -11,13 +11,11 @@ import {
   LayoutDashboard,
   Ticket,
   Inbox,
-  Tags,
   Users,
-  UserCog,
-  BarChart3,
   Settings,
   LogOut,
   User,
+  Star,
   ChevronRight,
 } from "lucide-react";
 
@@ -111,6 +109,12 @@ export default function AdminSidebar() {
   name: "Escalations",
   href: "/escalations",
   icon: Users,
+},
+
+{
+  name: "Rating & Masukan",
+  href: "/feedback",
+  icon: Star,
 },
 
     {
