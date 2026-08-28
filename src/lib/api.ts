@@ -1,6 +1,6 @@
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "http://192.168.200.193:3000/api/v1";
+  "http://10.190.139.32:3000/api/v1";
 
 export async function apiFetch(
   endpoint: string,

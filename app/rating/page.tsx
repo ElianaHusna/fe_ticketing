@@ -37,14 +37,94 @@ export default function RatingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [fetchingTicket, setFetchingTicket] = useState(false);
+  const [userTickets, setUserTickets] = useState<TicketData[]>([]);
+  const [loadingTickets, setLoadingTickets] = useState(false);
 
   const debounceTimer = useRef<NodeJS.Timeout | null>(null);
+
+  // =====================================================
+  // AMBIL TIKET USER LOGIN
+  // =====================================================
+
+  const fetchUserTickets = async () => {
+    try {
+      setLoadingTickets(true);
+      const response = await apiFetch(
+        "/tickets?page=1&limit=100",
+        {
+          method: "GET",
+        }
+      );
+
+      const allTickets =
+        Array.isArray(response)
+          ? response
+          : response?.data || [];
+
+      const savedUser =
+        localStorage.getItem("user");
+
+      if(!savedUser){
+        setUserTickets([]);
+        return;
+      }
+
+      const user =
+        JSON.parse(savedUser);
+
+      const email =
+        user.email
+        ?.toLowerCase()
+        .trim();
+
+      const filtered =
+        allTickets.filter(
+          (ticket:any)=>{
+            const ticketEmail =
+              (
+                ticket.requesterEmail ||
+                ticket.requester_email ||
+                ""
+              )
+              .toLowerCase()
+              .trim();
+
+            return (
+              ticketEmail === email &&
+              (
+                ticket.status === "resolved" ||
+                ticket.status === "closed"
+              )
+            );
+          }
+        );
+
+      console.log(
+        "TIKET USER:",
+        filtered
+      );
+
+      setUserTickets(filtered);
+
+    }catch(error){
+      console.error(
+        "Gagal mengambil tiket user:",
+        error
+      );
+      setUserTickets([]);
+    }
+    finally{
+      setLoadingTickets(false);
+    }
+  };
 
   // =====================================================
   // CEK URL PARAMS SAAT LOAD
   // =====================================================
 
   useEffect(() => {
+    fetchUserTickets();
+
     const ticketFromUrl = searchParams.get("ticket");
     const idFromUrl = searchParams.get("id");
     
@@ -219,6 +299,43 @@ export default function RatingPage() {
   }, []);
 
   // =====================================================
+  // FUNGSI PILIH TIKET
+  // =====================================================
+
+  const handleSelectTicket = (
+    e: React.ChangeEvent<HTMLSelectElement>
+  )=>{
+    const id =
+      e.target.value;
+
+    const selected =
+      userTickets.find(
+        (ticket)=>
+          ticket.id === id
+      );
+
+    if(selected){
+      setTicketId(
+        selected.id
+      );
+
+      setTicketNumber(
+        selected.ticketNumber || ""
+      );
+
+      setTicketData(
+        selected
+      );
+
+      setRating(0);
+
+      setComment("");
+
+      setError("");
+    }
+  };
+
+  // =====================================================
   // SUBMIT RATING
   // =====================================================
 
@@ -391,16 +508,51 @@ export default function RatingPage() {
                 </label>
                 <div className="relative">
                   <Ticket size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input
-                    id="ticket"
-                    type="text"
-                    value={ticketNumber}
-                    onChange={handleTicketNumberChange}
-                    placeholder="Contoh: TCK-20260814-001"
-                    disabled={submitted || loading}
-                    required
-                    className="w-full h-11 border border-slate-300 rounded-lg pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-100 placeholder:text-slate-400 disabled:bg-slate-50 disabled:text-slate-500"
-                  />
+                  <select
+                    value={ticketId}
+                    onChange={handleSelectTicket}
+                    disabled={
+                      submitted ||
+                      loading ||
+                      loadingTickets
+                    }
+                    className="
+                      w-full h-11
+                      border border-slate-300
+                      rounded-lg
+                      pl-10 pr-4
+                      text-sm
+                      text-slate-900
+                      outline-none
+                      focus:border-blue-600
+                      focus:ring-2
+                      focus:ring-blue-100
+                      disabled:bg-slate-50 disabled:text-slate-500
+                    "
+                  >
+                    <option value="">
+                      {
+                        loadingTickets
+                        ?
+                        "Memuat tiket..."
+                        :
+                        "Pilih tiket yang ingin diberi rating"
+                      }
+                    </option>
+
+                    {
+                      userTickets.map((ticket)=>(
+                        <option
+                          key={ticket.id}
+                          value={ticket.id}
+                        >
+                          {ticket.ticketNumber}
+                          {" - "}
+                          {ticket.subject || "Tanpa judul"}
+                        </option>
+                      ))
+                    }
+                  </select>
                   {fetchingTicket && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       <Loader2 size={18} className="animate-spin text-blue-500" />
@@ -413,7 +565,7 @@ export default function RatingPage() {
                   )}
                 </div>
                 <p className="text-xs text-slate-400 mt-2">
-                  Masukkan nomor tiket yang ingin Anda beri penilaian.
+                  Pilih tiket yang sudah selesai untuk memberikan penilaian.
                   {ticketId && (
                     <span className="text-emerald-600 font-medium ml-1">✓ Tiket ditemukan</span>
                   )}

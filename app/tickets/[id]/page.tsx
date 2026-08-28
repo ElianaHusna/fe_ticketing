@@ -400,10 +400,8 @@ export default function TicketDetailPage() {
       return;
     }
 
-    if (
-      ticket.status === "resolved" ||
-      ticket.status === "closed"
-    ) {
+    // ✅ Hanya closed yang dikunci, resolved masih bisa
+    if (ticket.status === "closed") {
       return;
     }
 
@@ -748,11 +746,10 @@ export default function TicketDetailPage() {
     (currentStatusIndex / 2) * 100;
 
   // =====================================================
-  // FINISHED
+  // ✅ CLOSED - HANYA CLOSED YANG DIKUNCI
   // =====================================================
 
-  const isFinished =
-    ticket?.status === "resolved" ||
+  const isClosed =
     ticket?.status === "closed";
 
   // =====================================================
@@ -910,10 +907,14 @@ export default function TicketDetailPage() {
                 <div className="relative">
                   <button
                     type="button"
-                    onClick={() =>
-                      setShowStatusMenu((value) => !value)
-                    }
-                    disabled={updatingStatus}
+                    onClick={() => {
+                      // ✅ Hanya closed yang tidak bisa buka dropdown
+                      if (!isClosed) {
+                        setShowStatusMenu((value) => !value);
+                      }
+                    }}
+                    // ✅ Disabled hanya saat closed
+                    disabled={updatingStatus || isClosed}
                     className={`inline-flex h-10 items-center gap-2 rounded-xl border px-4 text-sm font-bold shadow-sm transition ${getStatusClass(
                       ticket.status
                     )}`}
@@ -929,9 +930,11 @@ export default function TicketDetailPage() {
 
                     {getStatusLabel(ticket.status)}
 
-                    <span className="text-xs opacity-60">
-                      ▼
-                    </span>
+                    {!isClosed && (
+                      <span className="text-xs opacity-60">
+                        ▼
+                      </span>
+                    )}
                   </button>
 
                   {showStatusMenu && (
@@ -1384,31 +1387,27 @@ const imageUrl = file.fileUrl.startsWith("http")
                   )}
                 </div>
 
-                {/* SEND FEEDBACK */}
+                {/* SEND FEEDBACK - ✅ Hanya closed yang dikunci */}
 
                 <div className="border-t border-slate-200 bg-white p-5">
-                  {isFinished ? (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+                  {isClosed ? (
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
                       <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100">
                           <CheckCircle2
                             size={18}
-                            className="text-emerald-600"
+                            className="text-slate-400"
                           />
                         </div>
 
                         <div>
-                          <p className="text-sm font-bold text-emerald-800">
-                            Tiket sudah{" "}
-                            {ticket.status === "closed"
-                              ? "ditutup"
-                              : "diselesaikan"}
+                          <p className="text-sm font-bold text-slate-700">
+                            Tiket sudah ditutup
                           </p>
 
-                          <p className="mt-1 text-xs leading-5 text-emerald-700">
-                            Penanganan tiket telah selesai.
-                            Feedback baru tidak dapat dikirim
-                            pada tiket ini.
+                          <p className="mt-1 text-xs leading-5 text-slate-500">
+                            Tiket ini telah ditutup dan tidak dapat
+                            menerima feedback baru.
                           </p>
                         </div>
                       </div>
@@ -1456,7 +1455,8 @@ const imageUrl = file.fileUrl.startsWith("http")
                           onClick={handleSendFeedback}
                           disabled={
                             sendingFeedback ||
-                            !feedback.trim()
+                            !feedback.trim() ||
+                            isClosed
                           }
                           className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-slate-300"
                         >
@@ -1511,7 +1511,8 @@ const imageUrl = file.fileUrl.startsWith("http")
                 </p>
 
                 <div className="mt-5 space-y-2">
-                  {!isFinished &&
+                  {/* ✅ Hanya closed yang dikunci, resolved masih bisa */}
+                  {!isClosed &&
                     ticket.status !== "in_progress" && (
                       <button
                         type="button"
@@ -1536,7 +1537,7 @@ const imageUrl = file.fileUrl.startsWith("http")
                       </button>
                     )}
 
-                  {!isFinished && (
+                  {!isClosed && (
                     <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-100">
                         Status saat ini
@@ -1548,7 +1549,7 @@ const imageUrl = file.fileUrl.startsWith("http")
                     </div>
                   )}
 
-                  {!isFinished && (
+                  {!isClosed && (
                     <button
                       type="button"
                       onClick={() =>
@@ -1570,13 +1571,35 @@ const imageUrl = file.fileUrl.startsWith("http")
                     </button>
                   )}
 
-                  {isFinished && (
+                  {!isClosed && ticket.status !== "closed" && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleStatusChange("closed")
+                      }
+                      disabled={updatingStatus}
+                      className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-500 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-slate-600 disabled:opacity-60"
+                    >
+                      {updatingStatus ? (
+                        <RefreshCw
+                          size={15}
+                          className="animate-spin"
+                        />
+                      ) : (
+                        <Check size={15} />
+                      )}
+
+                      Tutup Tiket
+                    </button>
+                  )}
+
+                  {isClosed && (
                     <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 size={16} />
 
                         <span className="text-xs font-bold">
-                          Penanganan selesai
+                          Tiket telah ditutup
                         </span>
                       </div>
                     </div>
@@ -1768,29 +1791,26 @@ const imageUrl = file.fileUrl.startsWith("http")
                 </div>
               </section>
 
-              {/* FINISHED */}
+              {/* ✅ CLOSED - hanya muncul saat closed */}
 
-              {isFinished && (
-                <section className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
+              {isClosed && (
+                <section className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                   <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-100">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100">
                       <CheckCircle2
                         size={20}
-                        className="text-emerald-600"
+                        className="text-slate-500"
                       />
                     </div>
 
                     <div>
-                      <h3 className="text-sm font-bold text-emerald-800">
-                        Tiket{" "}
-                        {ticket.status === "closed"
-                          ? "Ditutup"
-                          : "Selesai"}
+                      <h3 className="text-sm font-bold text-slate-700">
+                        Tiket Ditutup
                       </h3>
 
-                      <p className="mt-1 text-xs leading-5 text-emerald-700">
-                        Penanganan tiket telah selesai dan pelapor
-                        dapat melihat hasil penanganan melalui Tracking.
+                      <p className="mt-1 text-xs leading-5 text-slate-500">
+                        Tiket ini telah ditutup dan tidak dapat diubah lagi.
+                        Status ini adalah final.
                       </p>
                     </div>
                   </div>
